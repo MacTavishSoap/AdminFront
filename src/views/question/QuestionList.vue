@@ -111,10 +111,14 @@
 
       <!-- 解析后的文件数据预览 -->
       <el-dialog title="文件解析结果" v-model="previewVisible" width="50%">
+            <!-- 统计信息 -->
+
+        
+
         <el-form :model="addForm" ref="addFormRef" label-width="80px">
           <el-form-item label="分类" required>
             <el-select
-              v-model="addForm.categoryId"
+              v-model="ctid.categoryId"
               placeholder="请选择分类"
               class="w-full"
             >
@@ -149,12 +153,13 @@
               </template>
             </el-table-column>
             <el-table-column
-              prop="Explanation"
+              prop="explanation"
               label="解析"
               width="200"
             ></el-table-column>
           </el-table>
           <span slot="footer" class="dialog-footer">
+          <span>总题数: {{ parsedQuestions.length }}</span>
             <el-button @click="previewVisible = false">取消</el-button>
             <el-button type="primary" @click="submitAddForm" :loading="loading"
               >确认提交</el-button
@@ -598,7 +603,9 @@ const singleForm = ref({
   tf: 0,
   type: 0,
 });
-
+const ctid = ref({
+  categoryId: 1,
+})
 const addForm = ref([
   {
     answer: [],
@@ -712,6 +719,22 @@ const submitAddForm = () => {
     if (!Array.isArray(addForm.value.answer)) {
       addForm.value.answer = [addForm.value.answer];
     }
+
+    addForm.value = parsedQuestions.value.map((question) => ({
+      content: question.content,
+      answer: question.answer,
+      explanation: question.explanation,
+      difficulty: question.difficulty,
+      categoryId: ctid.value.categoryId,
+      tf: question.type === 1 ? question.answer[0] : undefined, // 判断题
+      status: question.status,
+      options: question.options.map((option) => ({
+        content: option.content,
+      })),
+      type: question.type, // 确保题目类型字段存在
+      createdBy: sysAdmin.id, // 创建者为系统管理员
+    }));
+
     proxy.$api
       .questionadd(addForm.value)
       .then((res) => {
@@ -788,20 +811,6 @@ const handleUploadSuccess = (response, file, fileList) => {
     parsedQuestions.value = response.data; // 将解析后的数据赋值到 parsedQuestions
     previewVisible.value = true; // 显示预览弹窗
     console.log("解析数据", parsedQuestions);
-    // 批量处理数据，将 parsedQuestions 转换为合适的格式并存入 addForm 数组
-    addForm.value = parsedQuestions.value.map((question) => ({
-      content: question.content,
-      answer: question.answer,
-      explanation: question.explanation,
-      difficulty: question.difficulty,
-      tf: question.type === 1 ? question.answer[0] : undefined, // 判断题
-      status: question.status,
-      options: question.options.map((option) => ({
-        content: option.content,
-      })),
-      type: question.type, // 确保题目类型字段存在
-      createdBy: sysAdmin.id, // 创建者为系统管理员
-    }));
   } else {
     ElMessage.error("文件解析失败");
   }
@@ -909,8 +918,8 @@ const total = ref(null); // 总记录数
 
 // 页码变化时触发的处理函数
 const handlePageChange = (newPage) => {
-  pageNum.value = newPage;
-  fetchData();
+  searchForm.value.pageNum = newPage
+getquestionList();
 };
 </script>
 
