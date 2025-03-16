@@ -252,6 +252,13 @@ export default {
             data: params,
         })
     },
+    deletebans(id) {
+        return Request({
+            url: "/app/deleteban",
+            method: 'delete',
+            data: id,
+        })
+    },
     
 
 

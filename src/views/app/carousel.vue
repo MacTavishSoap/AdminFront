@@ -74,7 +74,6 @@
           </el-icon>
           {{ isExpanded ? "折叠" : "展开" }}
         </el-button>
-        <el-button type="primary" @click="showUpload">上传轮播图</el-button>
       </div>
 
       <!-- 上传组件 -->
@@ -133,9 +132,10 @@
           <el-table-column prop="type" label="轮播图" min-width="180">
             <template v-slot="scope">
               <!-- 使用 getImageUrl 来处理 URL -->
-              <image :src="getImageUrl(scope.row.type, scope.row.url)" mode="aspectFit" />
+                  <img :src="getImageUrl(scope.row.type, scope.row.url)" alt="轮播图" style="max-width: 100%; height: auto;" />
             </template>
           </el-table-column>
+          
           <el-table-column prop="type" label="轮播图类型" min-width="180">
           </el-table-column>
 
@@ -151,8 +151,7 @@
 
           <el-table-column label="更多操作" width="150" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="showupdateDialog(row)">修改</el-button>
-              <el-button @click="deletequestion(row.id)" type="text" size="small" style="color: red">删除</el-button>
+              <el-button @click="deleteban(row.id)" type="text" size="small" style="color: red">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -439,24 +438,38 @@ const getbanList = () => {
 };
 
 const singleFormRef = ref(null); // 对应对话框中的表单
-
+const sysAdmin = proxy.$store.state.sysAdmin;
 const submitsingle = () => {
-  singleForm.createdBy = sysAdmin.id;
-  proxy.$api
-    .banadd(singleForm.value)
-    .then((res) => {
-      if (res.code === 200) {
-        ElMessage.success("轮播图增加成功");
-        getbanList();
-        addDialogVisible.value = false; // 关闭对话框
-      }
+  const formData = new FormData();
+  formData.append('type', singleForm.value.type);
+  formData.append('sort', singleForm.value.sort);
+  formData.append('createdBy', sysAdmin.ID);
+
+  if (singleForm.value.type === 'internal' && singleForm.file) {
+    formData.append('file', singleForm.file);
+  } else if (singleForm.value.type === 'external') {
+    formData.append('url', singleForm.value.url);
+  }
+
+  proxy.$api.banadd(formData)
+    .then(response => {
+      console.log('✅ 上传成功', response);
+      
+      // 显示成功消息
+      ElMessage.success("添加成功");
+
+      // 重新获取数据
+      getbanList();
     })
-    .catch((err) => {
-      console.log("请求失败:", err);
+    .catch(error => {
+      console.error('❌ 上传失败', error);
+      
+      // 显示错误消息
+      ElMessage.error("上传失败，请重试");
     });
 };
 
-const sysAdmin = proxy.$store.state.sysAdmin;
+
 const submitAddForm = () => {
   const formData = new FormData();
   const createdBy = Number(sysAdmin.id);
@@ -566,23 +579,6 @@ const showAddDialog = () => {
 const showUpload = () => {
   uploadVisible.value = true;
 };
-
-const showupdateDialog = (row) => {
-  updateForm.value = {
-    id: row.id,
-    tf: row.tf,
-    categoryId: row.categoryId,
-    explanation: row.explanation,
-    difficulty: row.difficulty,
-    content: row.content, // 映射 role 字段到 roleId
-    status: row.status,
-    type: row.type,
-    options: row.options,
-    answer: row.answer.split(","),
-  };
-  updateDialogVisible.value = true; // 打开弹窗
-};
-
 onMounted(() => {
   getbanList();
 });
@@ -628,7 +624,7 @@ const deleteban = (id) => {
       };
 
       // 发送删除请求
-      proxy.$api.bandelete(deleteRequest).then((res) => {
+      proxy.$api.deletebans(deleteRequest).then((res) => {
         if (res.code == 200) {
           ElMessage.success("轮播图删除成功");
           getbanList(); // 删除成功后重新加载轮播图列表
@@ -648,10 +644,16 @@ const pageSize = ref(null); // 每页显示数量
 const total = ref(null); // 总记录数
 
 const getImageUrl = (type, url) => {
-  if (type === "external") {
+  if (!url) return ''; // 如果 url 为空，返回空字符串
+  if (type === 'external') {
+    console.log('External URL:', url); // 调试信息
     return url; // 外部链接直接返回
   }
-  return `http://localhost:8000${url}`; // 本地图片拼接服务器地址
+  // 使用 URL 对象拼接
+  const backendUrl = import.meta.env.VITE_API_BASE_URL;
+  const fullUrl = new URL(url, backendUrl).toString();
+  console.log('Local URL:', fullUrl); // 调试信息
+  return fullUrl; // 动态拼接后端地址
 };
 
 // 页码变化时触发的处理函数
