@@ -298,6 +298,11 @@ const deletecategory = (id) => {
       ElMessage.info("删除操作已取消");
     });
 };
+// 页码变化时触发的处理函数
+const handlePageChange = (newPage) => {
+  searchForm.value.pageNum = newPage
+getcategoryList();
+};
 </script>
 
 <style scoped>

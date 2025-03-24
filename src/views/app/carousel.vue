@@ -501,32 +501,6 @@ const handleFileChange = (file, fileList) => {
   singleForm.file = file.raw;  // raw 是文件对象
 };
 
-
-
-const submitUpdateForm = () => {
-  updateFormRef.value.validate((valid) => {
-    if (!valid) {
-      return ElMessage.error("请填写完整的表单数据");
-    }
-    console.log(updateForm.answer); // 这里可以看到选中的答案
-    console.log("请求数据:", updateForm.value); // 打印请求数据
-    proxy.$api
-      .banupdate(updateForm.value)
-      .then((res) => {
-        if (res.code == 200) {
-          ElMessage.success("轮播图修改成功");
-          getbanList();
-        } else {
-          ElMessage.error("轮播图修改失败");
-        }
-      })
-      .catch((err) => {
-        console.log("请求失败:", err);
-        ElMessage.error("修改轮播图失败");
-      });
-  }); // 调用轮播图更新接口
-};
-
 const beforeUpload = (file) => {
   // 判断文件类型是否为图片，支持 JPG, PNG, JPEG
   const isImage = file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png'].includes(file.name.slice(-4).toLowerCase());
@@ -658,8 +632,8 @@ const getImageUrl = (type, url) => {
 
 // 页码变化时触发的处理函数
 const handlePageChange = (newPage) => {
-  pageNum.value = newPage;
-  fetchData();
+  searchForm.value.pageNum = newPage
+getbanList();
 };
 
 const submitUpload = () => {

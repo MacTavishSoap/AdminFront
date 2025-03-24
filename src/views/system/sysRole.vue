@@ -484,7 +484,11 @@ onMounted(() => {
   getroleList();
   getMenuList(); // 获取菜单列表
 });
-
+// 页码变化时触发的处理函数
+const handlePageChange = (newPage) => {
+  searchForm.value.pageNum = newPage
+getroleList();
+};
 const deleterole = (id) => {
   // 弹出确认框
   ElMessageBox.confirm("确定删除该角色吗？", "删除角色", {

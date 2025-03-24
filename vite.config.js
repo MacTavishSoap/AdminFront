@@ -20,7 +20,7 @@ export default defineConfig({
     port: 5002, // 前端端口
     proxy: {
       '/api': {
-        target: 'http://localhost:9091', // 后端服务地址
+        target: 'env.VITE_API_BASE_URL', // 后端服务地址
         changeOrigin: true,  // 更改来源，避免跨域问题
       },
     }
