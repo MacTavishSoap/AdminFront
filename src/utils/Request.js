@@ -13,12 +13,17 @@ instance.interceptors.request.use(
     (req) => {
         const headers = req.headers;
         const token = storage.getItem("token") || {};
+        
+        // 添加管理端标识
+        headers['X-Client-Type'] = 'admin';
+
         if (!headers.Authorization) {
             headers.Authorization = 'Bearer ' + token;
         }
         return req;
     }
 );
+
 
 // 响应拦截器
 instance.interceptors.response.use(

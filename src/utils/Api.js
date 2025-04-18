@@ -6,7 +6,6 @@ export default {
             url: "/checkCode",
             method: 'get',
         })
-
     },
 
     login(params) {
@@ -235,7 +234,7 @@ export default {
         return Request({
             url: "/app/banlist",
             method: 'get',
-            data: params, 
+            data: params,
         });
     },
     banadd(formData) {
@@ -259,9 +258,77 @@ export default {
             data: id,
         })
     },
-    
-
-
+    //角色接口
+    userrolelist(params) {
+        return Request({
+            url: "/UserRole/list",
+            method: 'get',
+            data: params,
+        })
+    },
+    userroleadd(params) {
+        return Request({
+            url: "/UserRole/add",
+            method: 'post',
+            data: params,
+        })
+    },
+    userroledelete(id) {
+        return Request({
+            url: "/UserRole/delete",
+            method: 'delete',
+            data: id,
+        })
+    },
+    userrolevoidlist(id) {
+        return Request({
+            url: "/UserRole/vo/idlist",
+            method: 'get',
+            data: id,
+        })
+    },
+    userrolevolist(params) {
+        return Request({
+            url: "/UserRole/vo/list",
+            method: 'get',
+            data: params,
+        })
+    },
+    userroleupdate(params) {
+        return Request({
+            url: "/UserRole/update",
+            method: 'put',
+            data: params,
+        })
+    },
+    userroleupdatestatus(params) {
+        return Request({
+            url: "/UserRole/updateStatus",
+            method: 'put',
+            data: params,
+        })
+    },
+    userroleassignpermissions(params) {
+        return Request({
+            url: "/UserRole/vo/assignPermissions",
+            method: 'put',
+            data: params,
+        })
+    },
+    userlist(params) {
+        return Request({
+            url: "/User/list",
+            method: 'get',
+            data: params,
+        })
+    },
+    userupdatestatus(params) {
+        return Request({
+            url: "/User/updateStatus",
+            method: 'put',
+            data: params,
+        })
+    },
 
 
 

@@ -33,7 +33,7 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="getroleList">
+          <el-button type="primary" @click="usergetroleList">
             <el-icon><Search /></el-icon>搜索
           </el-button>
           <el-button @click="resetSearch">
@@ -47,13 +47,14 @@
         <el-button type="primary" @click="showAddDialog">
           <el-icon><Plus /></el-icon>新增
         </el-button>
+
       </div>
 
       <!-- 表格区域 -->
       <div class="table-container">
         <el-table :data="tableData" stripe row-key="id" style="width: 100%">
           <el-table-column prop="role_name" label="角色名称" min-width="180" />
-          <el-table-column prop="role_key" label="角色标识" min-width="200" />
+          <el-table-column prop="user_key" label="角色标识" min-width="200" />
           <el-table-column prop="create_time" label="创建时间" width="180" />
           <el-table-column prop="status" label="角色状态" width="180">
             <template v-slot="scope">
@@ -111,11 +112,11 @@
                 node-key="id"
                 :props="{
                   children: 'children',
-                  label: 'menuName',
+                  label: 'category',
                 }"
                 :check-strictly="true"
-                v-model="permissionform.menu_ids"
-                :default-checked-keys="permissionform.menu_ids"
+                v-model="permissionform.category_ids"
+                :default-checked-keys="permissionform.category_ids"
                 @check-change="handleCheckChange"
               />
             </el-form-item>
@@ -149,7 +150,7 @@
 
             <el-form-item label="角色标签">
               <el-input
-                v-model="addForm.role_key"
+                v-model="addForm.user_key"
                 placeholder="请输入角色标签"
               ></el-input>
             </el-form-item>
@@ -161,10 +162,7 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="角色描述">
-              <el-select v-model="addForm.description" placeholder="请选择权限">
-                <el-option label="全部权限" value="all"></el-option>
-                <el-option label="部分权限" value="part"></el-option>
-              </el-select>
+              <el-input v-model="addForm.description" placeholder="请输入角色描述"></el-input>
             </el-form-item>
           </el-form>
           <template #footer>
@@ -197,7 +195,7 @@
 
             <el-form-item label="角色标签">
               <el-input
-                v-model="addForm.role_key"
+                v-model="addForm.user_key"
                 placeholder="请输入角色标签"
               ></el-input>
             </el-form-item>
@@ -240,6 +238,7 @@ const pageNum = ref(null); // 当前页数
 const pageSize = ref(null); // 每页显示数量
 const total = ref(null); // 总记录数
 
+
 const permissionDialogVisible = ref(false);
 const addDialogVisible = ref(false);
 const updateDialogVisible = ref(false);
@@ -251,10 +250,7 @@ const rules = {
   roleName: [{ required: true, message: "请输入角色名称" }],
 };
 
-const permissionform = ref({
-  id: "",
-  menu_ids: [],
-});
+
 
 const selectmenu = ref({});
 
@@ -270,7 +266,7 @@ const searchForm = ref({
 
 const addForm = ref({
   description: "string",
-  role_key: "string",
+  user_key: "string",
   role_name: "string",
   status: 0,
 });
@@ -292,7 +288,7 @@ const cstatuschange = (id, status) => {
       status: statuschange.value.status,
     };
 
-    const response = proxy.$api.roleupdatestatus(params); // 确保接口路径正确
+    const response = proxy.$api.userroleupdatestatus(params); // 确保接口路径正确
 
     // 处理接口返回的结果
     if (response.success) {
@@ -304,13 +300,12 @@ const cstatuschange = (id, status) => {
 const tableData = ref([]);
 
 const res = ref([]);
-
-const getMenuList = () => {
+const getCategorylist = () => {
   proxy.$api
-    .menulist()
+    .categorylist()
     .then((response) => {
       // 修改 `res` 为 `response`，避免变量冲突
-      res.value = response.data || []; // 确保 res.value 被赋值
+      res.value = response.data.list || []; // 确保 res.value 被赋值
       console.log("API 数据:", res.value);
     })
     .catch((err) => {
@@ -341,11 +336,18 @@ const treeData = computed(() => {
   console.log(treeData);
   return result;
 });
+
+const permissionform = ref({
+  id: "",
+  category_ids: [],
+});
+
+
 // 提交权限
 const submitPermission = () => {
-  permissionform.value.menu_ids = [...new Set(permissionform.value.menu_ids)];
-  console.log(permissionform.value);
-  proxy.$api.roleassignpermissions(permissionform.value).then((res) => {
+  permissionform.value.category_ids = [...new Set(permissionform.value.category_ids)];
+
+  proxy.$api.userroleassignpermissions(permissionform.value).then((res) => {
     if (res.code === 200) {
       ElMessage.success("角色权限更新成功");
       permissionDialogVisible.value = false; // 关闭对话框
@@ -355,9 +357,9 @@ const submitPermission = () => {
   });
 };
 
-const getroleList = () => {
+const usergetroleList = () => {
   proxy.$api
-    .rolelist(searchForm.value)
+    .userrolelist(searchForm.value)
     .then((res) => {
       tableData.value = res.data.list || [];
       pageNum.value = res.data.pageNum; // 更新当前页
@@ -377,11 +379,11 @@ const submitAddForm = () => {
     }
     console.log("请求数据:", addForm.value); // 打印请求数据
     proxy.$api
-      .roleadd(addForm.value)
+      .userroleadd(addForm.value)
       .then((res) => {
         ElMessage.success("新增角色成功");
         addDialogVisible.value = false; // 关闭对话框
-        getroleList(); // 重新加载角色列表
+        usergetroleList(); // 重新加载角色列表
       })
       .catch((err) => {
         console.log("请求失败:", err);
@@ -396,13 +398,13 @@ const submitUpdateForm = () => {
       return ElMessage.error("请填写完整的表单数据");
     }
     console.log("请求数据:", addForm.value); // 打印请求数据
-    const res = proxy.$api.roleupdate(addForm.value); // 调用角色更新接口
+    const res = proxy.$api.userroleupdate(addForm.value); // 调用角色更新接口
 
     // 处理接口返回的结果
     if (res.success) {
       ElMessage.success("修改角色成功"); // 显示成功消息
       addDialogVisible.value = false; // 关闭对话框
-      getroleList(); // 重新加载角色列表
+      usergetroleList(); // 重新加载角色列表
     } else {
       console.log("请求失败:", err);
       ElMessage.error("修改角色失败"); // 请求发生错误时显示错误消息
@@ -415,17 +417,17 @@ const resetSearch = () => {
   searchForm.value.status = "";
   searchForm.value.beginTime = "";
   searchForm.value.endTime = "";
-  getroleList();
+  usergetroleList();
 };
 
 // 勾选变化的处理函数
 const handleCheckChange = (node, checked) => {
   if (checked) {
-    permissionform.value.menu_ids.push(node.id);
+    permissionform.value.category_ids.push(node.id);
   } else {
-    const index = permissionform.value.menu_ids.indexOf(node.id);
+    const index = permissionform.value.category_ids.indexOf(node.id);
     if (index !== -1) {
-      permissionform.value.menu_ids.splice(index, 1);
+      permissionform.value.category_ids.splice(index, 1);
     }
   }
 };
@@ -433,12 +435,12 @@ const handleCheckChange = (node, checked) => {
 // 显示权限分配对话框
 const showPermission = (id) => {
   permissionform.value.id = id;
-  permissionform.value.menu_ids = []; // 清空之前的菜单权限
+  permissionform.value.category_ids = []; // 清空之前的菜单权限
   console.log("调用 showPermission，准备获取菜单数据");
   console.log("当前权限form数据:", permissionform.value);
-  getMenuList(); // 调用获取菜单数据的方法
+  getCategorylist(); // 调用获取菜单数据的方法
   getselect(id); // 调用获取菜单数据的方法
-
+  console.log("现在的permissionform:", permissionform.value);
   nextTick(() => {
     console.log("treeData after update:", treeData);
     permissionDialogVisible.value = true; // 显示对话框
@@ -453,14 +455,14 @@ const showAddDialog = () => {
 const getselect = async (id) => {
   try {
     // 调用接口获取已分配的菜单
-    const response = await proxy.$api.rolevoidlist({ id }); // 确保参数是对象
+    const response = await proxy.$api.userrolevoidlist({ id }); // 确保参数是对象
 
     console.log("接口返回的响应:", response);
 
     // 检查接口返回的 code 是否为 200
     if (response.code === 200) {
-      // 如果接口返回的数据是有效的，直接赋值给 menu_ids
-      permissionform.value.menu_ids = response.data; // response.data 是已选的菜单 ID 数组
+      // 如果接口返回的数据是有效的，直接赋值给 category_ids
+      permissionform.value.category_ids = response.data; // response.data 是已选的菜单 ID 数组
     } else {
       ElMessage.error("获取菜单数据失败");
     }
@@ -478,13 +480,13 @@ const showupdateDialog = (role) => {
 };
 
 onMounted(() => {
-  getroleList();
-  getMenuList(); // 获取菜单列表
+  usergetroleList();
+  getCategorylist(); // 获取菜单列表
 });
 // 页码变化时触发的处理函数
 const handlePageChange = (newPage) => {
   searchForm.value.pageNum = newPage;
-  getroleList();
+  usergetroleList();
 };
 const deleterole = (id) => {
   // 弹出确认框
@@ -500,10 +502,10 @@ const deleterole = (id) => {
       };
 
       // 发送删除请求
-      proxy.$api.roledelete(deleteRequest).then((res) => {
+      proxy.$api.userroledelete(deleteRequest).then((res) => {
         if (res.code == 200) {
           ElMessage.success("角色删除成功");
-          getroleList(); // 删除成功后重新加载角色列表
+          usergetroleList(); // 删除成功后重新加载角色列表
         } else {
           ElMessage.error("角色删除失败");
         }

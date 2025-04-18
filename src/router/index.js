@@ -7,6 +7,13 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      redirect: (to) => {
+        const token = storage.getItem("token");
+        return token ? '/home' : '/login';
+      }
+    },
+    {
       path: '/login',
       name: '登录',
       // route level code-splitting
@@ -53,8 +60,18 @@ const router = createRouter({
         {
           path: '/app/carousel',
           component: () => import('@/views/app/carousel.vue'),
-          meta: { sTitle: '题库管理', tTitle: '题目列表' }
-        }
+          meta: { sTitle: 'APP管理', tTitle: '轮播图管理' }
+        },
+        {
+          path: '/app/role',
+          component: () => import('@/views/app/role.vue'),
+          meta: { sTitle: 'APP管理', tTitle: '用户角色管理' }
+        }, 
+        {
+          path: '/app/user',
+          component: () => import('@/views/app/user.vue'),
+          meta: { sTitle: 'APP管理', tTitle: '用户管理' }
+        }, 
       ]
     },
   ],

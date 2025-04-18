@@ -39,22 +39,57 @@
 
       <!-- 表格区域 -->
       <div class="table-container">
-        <el-table :data="tableData" stripe row-key="id" style="width: 100%">
-          <el-table-column prop="id" label="ID" min-width="200" />
-          <el-table-column prop="category" label="种类名称" min-width="180" />
+        <el-table
+          ref="tableRef"
+          :data="treeData"
+          row-key="id"
+          border
+          :default-expand-all="isExpanded"
+          :tree-props="{ children: 'children' }"
+          class="menu-table"
+        >
+          <el-table-column prop="category" label="种类名称" min-width="180">
+            <template #default="{ row }">
+              <span class="flex items-center">
+                <el-icon v-if="row.icon" class="mr-2">
+                  <component :is="row.icon" />
+                </el-icon>
+                {{ row.category }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="categoryType" label="种类类型" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.categoryType === '按钮' ? 'danger' : ''" size="small">
+                {{ row.categoryType }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="Status" label="种类状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.Status === '启用' ? 'success' : 'danger'" size="small">
+                {{ row.Status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sort" label="排序" width="80" align="center" />
           <el-table-column prop="createTime" label="创建时间" width="180" />
-          <el-table-column prop="createdBy" label="创建人" width="180" />
-          <el-table-column prop="categoryType" label="种类级别" width="180" />
           <el-table-column label="更多操作" width="150" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="showupdateDialog(row)"
+              <el-button
+                link
+                type="primary"
+                size="small"
+                @click="showupdateDialog(row)"
+                v-if="checkPermission(leftcategorylist)"
                 >修改</el-button
               >
               <el-button
-                @click="deletecategory(row.id)"
+                @click="deleteMenu(row.id)"
                 type="text"
                 size="small"
                 style="color: red"
+                v-if="checkPermission(leftcategorylist)"
                 >删除</el-button
               >
             </template>
@@ -67,41 +102,131 @@
           @current-change="handlePageChange"
           layout="total, prev, pager, next, jumper"
         ></el-pagination>
+
         <el-dialog
           v-model="addDialogVisible"
-          title="添加种类"
-          width="80%"
+          title="新增种类"
+          width="500px"
           :close-on-click-modal="false"
-          class="category-editor"
         >
-          <el-form :model="addForm" ref="addFormRef" label-width="80px">
-            <el-form-item label="种类名称">
-              <el-input v-model="addForm.category" placeholder="请输入种类名称" />
+          <el-form :model="addForm" label-width="100px" :rules="rules" ref="addFormRef">
+            <el-tabs v-model="activeTab">
+              <el-tab-pane label="种类类型" name="categoryType"> </el-tab-pane>
+            </el-tabs>
+            <el-form-item
+              label="种类类型"
+              :rules="[{ required: true, message: '请选择种类类型', trigger: 'blur' }]"
+            >
+              <el-radio-group v-model="addForm.categoryType">
+                <el-radio-button :label="1">一级种类</el-radio-button>
+                <el-radio-button :label="2">二级种类</el-radio-button>
+                <el-radio-button :label="3">三级种类</el-radio-button>
+              </el-radio-group>
             </el-form-item>
-            <el-form-item label="权限值">
+
+            <el-form-item label="上级种类">
+              <el-select v-model="addForm.parentId" placeholder="请选择上级种类">
+                <el-option
+                  v-for="item in categorylist"
+                  :key="item.id"
+                  :label="item.category"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item
+              label="种类名称"
+              :rules="[{ required: true, message: '请输入种类名称', trigger: 'blur' }]"
+            >
               <el-input
-                v-model="addForm.categoryType"
-                placeholder="请输入权限值(用于按钮)"
-              />
+                v-model="addForm.category"
+                placeholder="请输入种类名称"
+              ></el-input>
+            </el-form-item>
+
+            <el-form-item label="排序">
+              <el-input v-model="addForm.sort" placeholder="请输入排序" type="number" />
+            </el-form-item>
+            <el-form-item label="种类状态">
+              <el-radio-group v-model="addForm.Status">
+                <el-radio :label="1">启用</el-radio>
+                <el-radio :label="2">禁用</el-radio>
+              </el-radio-group>
             </el-form-item>
           </el-form>
 
           <template #footer>
-            <div class="dialog-footer">
+            <span class="dialog-footer">
               <el-button @click="addDialogVisible = false">取消</el-button>
               <el-button type="primary" @click="submitAddForm">确定</el-button>
-            </div>
+            </span>
           </template>
         </el-dialog>
 
         <el-dialog
           v-model="updateDialogVisible"
           title="编辑种类"
-          width="80%"
+          width="500px"
           :close-on-click-modal="false"
-          class="category-editor"
         >
-          <el-form :model="updateForm" ref="updateFormRef" label-width="80px"> </el-form>
+          <el-form
+            :model="updateForm"
+            label-width="100px"
+            :rules="rules"
+            ref="updateFormRef"
+          >
+            <el-tabs v-model="activeTab">
+              <el-tab-pane label="种类类型" name="categoryType"> </el-tab-pane>
+            </el-tabs>
+
+            <el-form-item
+              label="种类类型"
+              :rules="[{ required: true, message: '请选择种类类型', trigger: 'blur' }]"
+            >
+              <el-radio-group v-model="updateForm.categoryType">
+                <el-radio-button :label="1">一级种类</el-radio-button>
+                <el-radio-button :label="2">二级种类</el-radio-button>
+                <el-radio-button :label="3">三级种类</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="上级种类">
+              <el-select v-model="updateForm.parentId" placeholder="请选择上级种类">
+                <el-option
+                  v-for="item in categorylist"
+                  :key="item.id"
+                  :label="item.category"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item
+              label="种类名称"
+              :rules="[{ required: true, message: '请输入种类名称', trigger: 'blur' }]"
+            >
+              <el-input
+                v-model="updateForm.category"
+                placeholder="请输入种类名称"
+              ></el-input>
+            </el-form-item>
+
+            <el-form-item label="排序">
+              <el-input
+                v-model="updateForm.sort"
+                placeholder="请输入排序"
+                type="number"
+              />
+            </el-form-item>
+
+            <el-form-item label="种类状态">
+              <el-radio-group v-model="updateForm.Status">
+                <el-radio :label="1">启用</el-radio>
+                <el-radio :label="2">禁用</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
 
           <template #footer>
             <div class="dialog-footer">
@@ -112,27 +237,6 @@
         </el-dialog>
       </div>
     </div>
-
-    <el-dialog v-model="pwDialogVisible" title="修改种类密码" width="30%">
-      <el-form :model="passwordform">
-        <el-form-item
-          label="新密码"
-          prop="password"
-          :rules="[{ required: true, message: '请输入密码', trigger: 'blur' }]"
-        >
-          <el-input
-            v-model="passwordform.password"
-            type="password"
-            placeholder="请输入新密码"
-          ></el-input>
-        </el-form-item>
-      </el-form>
-
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="addDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitPassword">提交</el-button>
-      </span>
-    </el-dialog>
   </el-container>
 </template>
 
@@ -150,7 +254,6 @@ const tableData = ref([]);
 
 const addFormRef = ref(null);
 const updateFormRef = ref(null);
-
 
 const isExpanded = ref(true);
 
@@ -170,18 +273,35 @@ const searchForm = ref({
 
 const updateForm = ref({
   category: "",
+  categoryType: 1,
+  Status: 1,
+  sort: 0,
   categoryType: 0,
   parentId: 0,
 });
 
 const addForm = ref({
   category: "",
+  categoryType: 1,
+  Status: 1,
+  sort: 0,
   categoryType: 0,
   parentId: 0,
 });
 const pageNum = ref(null); // 当前页数
 const pageSize = ref(null); // 每页显示数量
 const total = ref(null); // 总记录数
+
+const categorylist = ref([]);
+const getParentcategorylist = async () => {
+  try {
+    const res = await proxy.$api.categorylist(); // 调用 API 获取菜单数据
+    categorylist.value = res.data.list || [];
+  } catch (error) {
+    ElMessage.error("获取上级菜单失败");
+    console.error("获取上级菜单失败:", error);
+  }
+};
 
 const getcategoryList = () => {
   proxy.$api
@@ -200,7 +320,26 @@ const getcategoryList = () => {
       console.error("获取种类列表失败:", err.response ? err.response.data : err);
     });
 };
+const treeData = computed(() => {
+  const data = JSON.parse(JSON.stringify(tableData.value));
+  const result = [];
+  const map = {};
 
+  data.forEach((item) => {
+    map[item.id] = item;
+    item.children = [];
+  });
+
+  data.forEach((item) => {
+    const parent = map[item.parentId];
+    if (parent) {
+      parent.children.push(item);
+    } else {
+      result.push(item);
+    }
+  });
+  return result;
+});
 const submitAddForm = () => {
   addFormRef.value.validate((valid) => {
     if (!valid) {
@@ -246,30 +385,57 @@ const submitUpdateForm = (id) => {
       });
   }); // 调用种类更新接口
 };
-
+const toggleExpand = () => {
+  isExpanded.value = !isExpanded.value;
+  const table = tableRef.value;
+  if (table) {
+    treeData.value.forEach((row) => {
+      table.toggleRowExpansion(row, isExpanded.value);
+    });
+  }
+};
 const resetSearch = () => {
-  searchForm.value.username = "";
-  searchForm.value.status = "";
+  searchForm.value.category = "";
+  searchForm.value.category_type = "";
   searchForm.value.beginTime = "";
   searchForm.value.endTime = "";
   getcategoryList();
 };
 
 const showAddDialog = () => {
+  getParentcategorylist();
   addDialogVisible.value = true;
 };
 
 const showupdateDialog = (row) => {
   updateForm.value = {
     id: row.id,
+    category: row.category,
+    Status: row.Status,
+    sort: row.sort,
+    categoryType: row.categoryType,
+    parentId: row.parentId,
   };
+  getParentcategorylist();
   updateDialogVisible.value = true; // 打开弹窗
 };
 
 onMounted(() => {
   getcategoryList();
 });
+const checkPermission = (treeData) => {
+  // 防御：确保 treeData 是数组
+  if (!Array.isArray(treeData)) return false;
 
+  // 遍历每个节点
+  for (const node of treeData) {
+    // 如果当前节点有子节点，返回 true
+    if (node.children?.length > 0) return false;
+    // 递归检查子节点（确保传入的 children 是数组）
+    if (checkPermission(node.children)) return false;
+  }
+  return true;  // 整棵树都没有子节点
+};
 const deletecategory = (id) => {
   // 弹出确认框
   ElMessageBox.confirm("确定删除该种类吗？", "删除种类", {
@@ -300,8 +466,8 @@ const deletecategory = (id) => {
 };
 // 页码变化时触发的处理函数
 const handlePageChange = (newPage) => {
-  searchForm.value.pageNum = newPage
-getcategoryList();
+  searchForm.value.pageNum = newPage;
+  getcategoryList();
 };
 </script>
 
