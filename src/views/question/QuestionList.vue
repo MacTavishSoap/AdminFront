@@ -104,6 +104,33 @@
           <div class="el-upload__text">点击或拖动文件上传</div>
           <div class="el-upload__tip" slot="tip">支持 txt 文件</div>
         </el-upload>
+
+        <!-- 添加格式示例 -->
+        <div class="format-example">
+          <h4>格式示例：</h4>
+          <pre>
+1.（    ）全长1956千米，被誉为"天路"，是世界上海拔最高、在冻土上路程最长的高原铁路，是"中国新世纪四大工程"之一。
+A.兰新铁路
+B.青藏铁路
+C.北疆铁路
+D.南疆铁路
+参考答案：B
+解析：测试
+
+25.教育学的发展总是受到具体的社会政治、经济、文化条件的制约。（）
+参考答案:正确
+解析:教育学的发展总是与具体的社会政治、经济、文化条件密切相关，反映着这些条件的变化和要求。
+
+3.让一个4岁半的幼儿看"牛、人、船、猪"四张图，要求拿出不同的一张，他拿出了"船"，是因为（    ）。
+A.他认为牛、人、猪经常在一起出现，而船不是
+B.他认为船是没有生命的，而另外的都是有生命的
+C.他认为牛、人、猪都有头、脚和身体，而船没有
+D.以上理由都不正确
+参考答案：CB
+    </pre
+          >
+        </div>
+
         <span slot="footer" class="dialog-footer">
           <el-button @click="uploadVisible = false">取消</el-button>
         </span>
@@ -111,17 +138,11 @@
 
       <!-- 解析后的文件数据预览 -->
       <el-dialog title="文件解析结果" v-model="previewVisible" width="50%">
-            <!-- 统计信息 -->
-
-        
+        <!-- 统计信息 -->
 
         <el-form :model="addForm" ref="addFormRef" label-width="80px">
           <el-form-item label="分类" required>
-            <el-select
-              v-model="ctid.categoryId"
-              placeholder="请选择分类"
-              class="w-full"
-            >
+            <el-select v-model="ctid.categoryId" placeholder="请选择分类" class="w-full">
               <el-option
                 v-for="cate in categoryData"
                 :key="cate.id"
@@ -145,11 +166,10 @@
             </el-table-column>
             <el-table-column prop="answer" label="正确答案" width="120">
               <template v-slot="scope">
-                <span>
-                  <div v-for="(option, idx) in scope.row.answer" :key="idx">
-                    {{ String.fromCharCode(65 + option) }}
-                  </div>
-                </span>
+                <!-- 如果 answer 不为空，则显示 answer -->
+                <span v-if="scope.row.type === 1">{{ scope.row.tf == "0" ? "正确" : "错误" }}</span>
+                <!-- 如果 answer 为空，则根据 tf 的值显示对错标识 -->
+                <span v-else>{{ scope.row.answer}}</span>
               </template>
             </el-table-column>
             <el-table-column
@@ -159,7 +179,7 @@
             ></el-table-column>
           </el-table>
           <span slot="footer" class="dialog-footer">
-          <span>总题数: {{ parsedQuestions.length }}</span>
+            <span>总题数: {{ parsedQuestions.length }}</span>
             <el-button @click="previewVisible = false">取消</el-button>
             <el-button type="primary" @click="submitAddForm" :loading="loading"
               >确认提交</el-button
@@ -605,7 +625,7 @@ const singleForm = ref({
 });
 const ctid = ref({
   categoryId: 1,
-})
+});
 const addForm = ref([
   {
     answer: [],
@@ -918,8 +938,8 @@ const total = ref(null); // 总记录数
 
 // 页码变化时触发的处理函数
 const handlePageChange = (newPage) => {
-  searchForm.value.pageNum = newPage
-getquestionList();
+  searchForm.value.pageNum = newPage;
+  getquestionList();
 };
 </script>
 
@@ -1013,5 +1033,27 @@ getquestionList();
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+.format-example {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.format-example h4 {
+  margin-bottom: 10px;
+  color: #606266;
+}
+
+.format-example pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  color: #666;
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
 }
 </style>

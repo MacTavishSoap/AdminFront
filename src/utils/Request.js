@@ -30,7 +30,7 @@ instance.interceptors.response.use(
     (res) => {
         const { code, data, message } = res.data;
         console.log('Interceptor code type:', typeof code); // 添加这行
-        if (code == 403) {
+        if (code == 403 || code==901) {
             ElMessage.error(message);
             storage.clearAll();
             setTimeout(() => {
@@ -43,6 +43,8 @@ instance.interceptors.response.use(
         }
     }
 );
+
+
 
 // 请求函数封装
 const Request = (options) => {

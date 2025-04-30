@@ -329,7 +329,13 @@ export default {
             data: params,
         })
     },
-
+    stats(params){
+        return Request({
+            url:"/dashboard/stats",
+            method:'get',
+            data:params,
+        })
+    }
 
 
 

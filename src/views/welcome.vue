@@ -146,164 +146,136 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
-import { 
-  Document, 
-  Collection, 
-  ChatDotRound, 
-  TrendCharts, 
-  ArrowUp, 
-  ArrowDown 
-} from '@element-plus/icons-vue'
-import * as echarts from 'echarts'
+import { ref, onMounted, reactive, getCurrentInstance, computed, nextTick } from "vue";
+import {
+  Document,
+  Collection,
+  ChatDotRound,
+  TrendCharts,
+  ArrowUp,
+  ArrowDown,
+} from "@element-plus/icons-vue";
+import * as echarts from "echarts";
+import { ElMessage } from "element-plus";
 
-const userRole = '管理员'
-const activeTab = ref('single')
-const lineChartRef = ref(null)
-const pieChartRef = ref(null)
+const { proxy } = getCurrentInstance();
+const sysAdmin = proxy.$store.state.sysAdmin;
+const userRole = computed(() => sysAdmin.Username || "管理员");
 
-// 模拟数据
-const statistics = reactive({
-  totalQuestions: 37350,
-  newQuestions: 368,
-  totalAnswers: 8874,
-  dailyActiveUsers: 2.8
-})
+const activeTab = ref("single");
+const lineChartRef = ref(null);
+const pieChartRef = ref(null);
+let lineChart = null;
+let pieChart = null;
 
-const popularQuestions = [
-  { rank: 1, title: 'JavaScript中的闭包是什么？', usageCount: 3463, correctRate: 35, trend: 'down' },
-  { rank: 2, title: 'React中的虚拟DOM有什么优势？', usageCount: 3242, correctRate: 22, trend: 'down' },
-  { rank: 3, title: 'Vue3的Composition API有哪些优点？', usageCount: 3189, correctRate: 9, trend: 'down' },
-  { rank: 4, title: 'TypeScript中的泛型如何使用？', usageCount: 2875, correctRate: 17, trend: 'up' },
-  { rank: 5, title: 'CSS中的Flex布局基本概念是什么？', usageCount: 2654, correctRate: 45, trend: 'up' }
-]
+// 使用响应式数据
+const statsData = ref({
+  total_questions: 0,
+  today_added: 0,
+  user_answer_count: 0,
+  daily_active_users: 0,
+  question_type_ratio: [],
+  usage_trend: []
+});
+
+// 自动计算的统计信息
+const statistics = computed(() => ({
+  totalQuestions: statsData.value.total_questions,
+  newQuestions: statsData.value.today_added,
+  totalAnswers: statsData.value.user_answer_count,
+  dailyActiveUsers: statsData.value.daily_active_users
+}));
+
+const getstat = () => {
+  proxy.$api.stats()
+    .then((res) => {
+
+        statsData.value = res.data;
+        console.log("数据",statsData)
+        // DOM更新后刷新图表
+        nextTick(() => {
+          updateCharts();
+        });
+
+    })
+    .catch((err) => {
+      ElMessage.error("请求失败");
+      console.error("API错误:", err);
+    });
+};
+
+// 类型转换方法
+const getTypeName = (type) => {
+  const typeMap = {
+    '1': '判断题',
+    '2': '单选题',
+    '3': '多选题'
+  };
+  return typeMap[type] || '未知类型';
+};
 
 // 格式化数字
 const formatNumber = (num) => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w'
-  }
-  return num.toString()
-}
+  if (!num) return "0";
+  return num >= 10000 ? `${(num/10000).toFixed(1)}w` : num.toString();
+};
 
-// 初始化图表
-onMounted(() => {
-  initLineChart()
-  initPieChart()
-})
+// 图表初始化
+const initCharts = () => {
+  lineChart = echarts.init(lineChartRef.value);
+  pieChart = echarts.init(pieChartRef.value);
+};
 
-// 初始化折线图
-const initLineChart = () => {
-  const chartDom = lineChartRef.value
-  const myChart = echarts.init(chartDom)
-  
+// 图表更新
+const updateCharts = () => {
+  updateLineChart();
+  updatePieChart();
+};
+
+// 折线图配置
+const updateLineChart = () => {
   const option = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
+    tooltip: { trigger: "axis" },
     xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: ['2023-03-28', '2023-03-29', '2023-03-30', '2023-03-31', '2023-04-01', '2023-04-02', '2023-04-03', '2023-04-04']
+      type: "category",
+      data: statsData.value.usage_trend.map(item => item.date)
     },
-    yAxis: {
-      type: 'value',
-      axisLine: {
-        show: false
-      },
-      splitLine: {
-        lineStyle: {
-          type: 'dashed'
-        }
-      }
-    },
-    series: [
-      {
-        name: '答题人数',
-        type: 'line',
-        smooth: true,
-        lineStyle: {
-          width: 3,
-          color: '#409EFF'
-        },
-        areaStyle: {
-          opacity: 0.2,
-          color: '#409EFF'
-        },
-        data: [58000, 72000, 79000, 53000, 67000, 84000, 86000, 49000, 55000, 78000]
-      }
-    ]
-  }
-  
-  myChart.setOption(option)
-  
-  window.addEventListener('resize', () => {
-    myChart.resize()
-  })
-}
+    yAxis: { type: "value" },
+    series: [{
+      type: "line",
+      data: statsData.value.usage_trend.map(item => item.count),
+      areaStyle: { color: "#409EFF" }
+    }]
+  };
+  lineChart.setOption(option);
+};
 
-// 初始化饼图
-const initPieChart = () => {
-  const chartDom = pieChartRef.value
-  const myChart = echarts.init(chartDom)
-  
+// 饼图配置
+const updatePieChart = () => {
   const option = {
-    tooltip: {
-      trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      data: ['单选题', '多选题', '判断题']
-    },
-    series: [
-      {
-        name: '题目类型',
-        type: 'pie',
-        radius: ['50%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: [
-          { value: 48, name: '单选题', itemStyle: { color: '#36A3F7' } },
-          { value: 36, name: '多选题', itemStyle: { color: '#4956E3' } },
-          { value: 16, name: '判断题', itemStyle: { color: '#25C3D9' } }
-        ]
-      }
-    ]
-  }
-  
-  myChart.setOption(option)
-  
-  window.addEventListener('resize', () => {
-    myChart.resize()
-  })
-}
+    tooltip: { formatter: "{b}: {d}%" },
+    series: [{
+      type: "pie",
+      data: statsData.value.question_type_ratio.map(item => ({
+        name: getTypeName(item.type),
+        value: item.ratio
+      }))
+    }]
+  };
+  pieChart.setOption(option);
+};
+
+// 窗口resize处理
+const handleResize = () => {
+  lineChart?.resize();
+  pieChart?.resize();
+};
+
+onMounted(async () => {
+  await getstat();
+  initCharts();
+  window.addEventListener("resize", handleResize);
+});
 </script>
 
 <style scoped>
@@ -353,19 +325,19 @@ const initPieChart = () => {
 }
 
 .card-icon.blue {
-  background-color: #409EFF;
+  background-color: #409eff;
 }
 
 .card-icon.purple {
-  background-color: #8B5CF6;
+  background-color: #8b5cf6;
 }
 
 .card-icon.orange {
-  background-color: #F59E0B;
+  background-color: #f59e0b;
 }
 
 .card-icon.green {
-  background-color: #10B981;
+  background-color: #10b981;
 }
 
 .card-info {
@@ -394,11 +366,11 @@ const initPieChart = () => {
 }
 
 .trend.up {
-  color: #67C23A;
+  color: #67c23a;
 }
 
 .trend.down {
-  color: #F56C6C;
+  color: #f56c6c;
 }
 
 .chart-card {
@@ -429,7 +401,8 @@ const initPieChart = () => {
   margin-bottom: 20px;
 }
 
-.popular-questions, .question-types {
+.popular-questions,
+.question-types {
   height: 100%;
   border-radius: 8px;
 }
