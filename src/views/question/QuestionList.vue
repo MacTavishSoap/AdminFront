@@ -271,14 +271,14 @@ D.以上理由都不正确
                 <!-- 标题和分类 -->
                 <el-form-item label="分类" required>
                   <el-select
-                    v-model="singleForm.categoryId"
+                    v-model="updateForm.categoryId"
                     placeholder="请选择分类"
                     class="w-full"
                   >
                     <el-option
                       v-for="cate in categoryData"
                       :key="cate.id"
-                      :label="cate.category"
+                      :label="`${cate.category} (${cate.id})`"
                       :value="cate.id"
                     ></el-option>
                   </el-select>
@@ -424,7 +424,7 @@ D.以上理由都不正确
                     <el-option
                       v-for="cate in categoryData"
                       :key="cate.id"
-                      :label="cate.category"
+                      :label="`${cate.category} (${cate.id})`"
                       :value="cate.id"
                     ></el-option>
                   </el-select>
@@ -740,20 +740,26 @@ const submitAddForm = () => {
       addForm.value.answer = [addForm.value.answer];
     }
 
-    addForm.value = parsedQuestions.value.map((question) => ({
-      content: question.content,
-      answer: question.answer,
-      explanation: question.explanation,
-      difficulty: question.difficulty,
-      categoryId: ctid.value.categoryId,
-      tf: question.type === 1 ? question.answer[0] : undefined, // 判断题
-      status: question.status,
-      options: question.options.map((option) => ({
-        content: option.content,
-      })),
-      type: question.type, // 确保题目类型字段存在
-      createdBy: sysAdmin.id, // 创建者为系统管理员
-    }));
+    addForm.value = parsedQuestions.value.map((question) => {
+      const baseData = {
+        content: question.content,
+        answer: question.answer,
+        explanation: question.explanation,
+        difficulty: question.difficulty,
+        categoryId: ctid.value.categoryId,
+        tf: question.type === 1 ? question.answer[0] : undefined, // 判断题
+        status: question.status,
+        type: question.type, // 确保题目类型字段存在
+        createdBy: sysAdmin.id, // 创建者为系统管理员
+      };
+      // 如果不是判断题，添加 options 字段
+      if (question.type!== 1) {
+        baseData.options = question.options.map((option) => ({
+          content: option.content,
+        }));
+      }
+      return baseData;
+    });
 
     proxy.$api
       .questionadd(addForm.value)
@@ -859,7 +865,7 @@ const showupdateDialog = (row) => {
   updateForm.value = {
     id: row.id,
     tf: row.tf,
-    categoryId: row.categoryId,
+    categoryId: Number(row.categoryId),
     explanation: row.explanation,
     difficulty: row.difficulty,
     content: row.content, // 映射 role 字段到 roleId

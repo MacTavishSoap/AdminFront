@@ -48,6 +48,7 @@
           :tree-props="{ children: 'children' }"
           class="menu-table"
         >
+          <el-table-column prop="id" label="ID" width="180" />
           <el-table-column prop="category" label="种类名称" min-width="180">
             <template #default="{ row }">
               <span class="flex items-center">
@@ -129,7 +130,7 @@
                 <el-option
                   v-for="item in categorylist"
                   :key="item.id"
-                  :label="item.category"
+                  :label="`${item.category} (${item.id})`"
                   :value="item.id"
                 ></el-option>
               </el-select>
@@ -295,8 +296,8 @@ const total = ref(null); // 总记录数
 const categorylist = ref([]);
 const getParentcategorylist = async () => {
   try {
-    const res = await proxy.$api.categorylist(); // 调用 API 获取菜单数据
-    categorylist.value = res.data.list || [];
+    const res = await proxy.$api.questionvolist(); // 调用 API 获取菜单数据
+    categorylist.value = res.data || [];
   } catch (error) {
     ElMessage.error("获取上级菜单失败");
     console.error("获取上级菜单失败:", error);
@@ -434,7 +435,7 @@ const checkPermission = (treeData) => {
     // 递归检查子节点（确保传入的 children 是数组）
     if (checkPermission(node.children)) return false;
   }
-  return true;  // 整棵树都没有子节点
+  return true; // 整棵树都没有子节点
 };
 const deletecategory = (id) => {
   // 弹出确认框
