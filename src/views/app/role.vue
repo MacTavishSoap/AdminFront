@@ -55,6 +55,45 @@
         <el-table :data="tableData" stripe row-key="id" style="width: 100%">
           <el-table-column prop="role_name" label="角色名称" min-width="180" />
           <el-table-column prop="user_key" label="角色标识" min-width="200" />
+          <el-table-column prop="wrong" label="角色是否可用错题本" width="180">
+            <template v-slot="scope">
+              <el-switch
+                v-model="scope.row.wrong"
+                :active-color="'#13ce66'"
+                :inactive-color="'#ff4949'"
+                active-text="启用"
+                inactive-text="禁用"
+                :active-value="1"
+                :inactive-value="2"
+                @change="cstatuswrongchange(scope.row.id, scope.row.wrong)"
+              ></el-switch>
+            </template>
+          </el-table-column>
+                    <el-table-column prop="favourite" label="角色是否可用收藏本" width="180">
+            <template v-slot="scope">
+              <el-switch
+                v-model="scope.row.favourite"
+                :active-color="'#13ce66'"
+                :inactive-color="'#ff4949'"
+                active-text="启用"
+                inactive-text="禁用"
+                :active-value="1"
+                :inactive-value="2"
+                @change="cstatusfavchange(scope.row.id, scope.row.favourite)"
+              ></el-switch>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="count" label="AI解析可用次数" width="180">
+  <template #default="scope">
+    <el-input-number 
+      v-model="scope.row.count" 
+      :min="0" 
+      :max="9999"
+      @change="(value) => handleAICountChange(scope.row.id, value)"
+    />
+  </template>
+</el-table-column>
           <el-table-column prop="create_time" label="创建时间" width="180" />
           <el-table-column prop="status" label="角色状态" width="180">
             <template v-slot="scope">
@@ -275,7 +314,28 @@ const statuschange = ref({
   id: "",
   status: "",
 });
+const handleAICountChange = async (userId, newCount) => {
+  try {
+    // 构造符合后端要求的参数格式
+    const params = {
 
+        id: userId,
+        count: newCount
+      
+    };
+
+    const response = await proxy.$api.userrolecountupdate(params);
+    
+    if (response.code == 200) {
+      ElMessage.success("AI次数设置成功");
+    } else {
+      ElMessage.error(response.message || "设置失败");
+    }
+  } catch (error) {
+    console.error("AI次数设置失败:", error);
+    ElMessage.error("网络错误，请稍后重试");
+  }
+};
 const cstatuschange = (id, status) => {
   // 确保id和status被正确赋值
   statuschange.value.id = id;
@@ -296,16 +356,57 @@ const cstatuschange = (id, status) => {
     }
   } catch (error) {}
 };
+const cstatuswrongchange = (id, status) => {
+  // 确保id和status被正确赋值
+  statuschange.value.id = id;
+  statuschange.value.status = status;
+
+  // 调用API接口
+  try {
+    const params = {
+      id: statuschange.value.id,
+      status: statuschange.value.status,
+    };
+
+    const response = proxy.$api.userroleupdatewrongstatus(params); // 确保接口路径正确
+
+    // 处理接口返回的结果
+    if (response.success) {
+    } else {
+    }
+  } catch (error) {}
+};
+const cstatusfavchange = (id, status) => {
+  // 确保id和status被正确赋值
+  statuschange.value.id = id;
+  statuschange.value.status = status;
+
+  // 调用API接口
+  try {
+    const params = {
+      id: statuschange.value.id,
+      status: statuschange.value.status,
+    };
+
+    const response = proxy.$api.userroleupdatefavstatus(params); // 确保接口路径正确
+
+    // 处理接口返回的结果
+    if (response.success) {
+    } else {
+    }
+  } catch (error) {}
+};
+
 
 const tableData = ref([]);
 
 const res = ref([]);
 const getCategorylist = () => {
   proxy.$api
-    .categorylist()
+    .questionvolist()
     .then((response) => {
       // 修改 `res` 为 `response`，避免变量冲突
-      res.value = response.data.list || []; // 确保 res.value 被赋值
+      res.value = response.data || []; // 确保 res.value 被赋值
       console.log("API 数据:", res.value);
     })
     .catch((err) => {
@@ -525,6 +626,7 @@ const deleterole = (id) => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
+  height: auto; 
 }
 
 .role-layout {

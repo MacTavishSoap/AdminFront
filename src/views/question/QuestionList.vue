@@ -733,48 +733,51 @@ const submitAddForm = () => {
     if (!valid) {
       return ElMessage.error("请填写完整的表单数据");
     }
-    addForm.createdBy = sysAdmin.id;
-    console.log("请求数据:", addForm.value); // 打印请求数据
 
-    if (!Array.isArray(addForm.value.answer)) {
-      addForm.value.answer = [addForm.value.answer];
+    // 1. 检查用户权限
+    const currentUserId = sysAdmin?.id;
+    if (!currentUserId) {
+      ElMessage.error("用户未登录，无法创建题目");
+      return;
     }
 
+    // 2. 确保每个问题的 createdBy 被赋值
     addForm.value = parsedQuestions.value.map((question) => {
       const baseData = {
-        content: question.content,
-        answer: question.answer,
-        explanation: question.explanation,
-        difficulty: question.difficulty,
+        ...question,
+        createdBy: currentUserId, // 使用当前用户 ID
         categoryId: ctid.value.categoryId,
-        tf: question.type === 1 ? question.answer[0] : undefined, // 判断题
+        tf: question.type === 1 ? question.answer[0] : undefined,
         status: question.status,
-        type: question.type, // 确保题目类型字段存在
-        createdBy: sysAdmin.id, // 创建者为系统管理员
+        type: question.type,
       };
-      // 如果不是判断题，添加 options 字段
-      if (question.type!== 1) {
+
+      if (question.type !== 1) {
         baseData.options = question.options.map((option) => ({
           content: option.content,
         }));
       }
+
       return baseData;
     });
 
+    // 3. 打印调试信息
+    console.log("最终提交数据:", addForm.value);
+
+    // 4. 提交到后端
     proxy.$api
       .questionadd(addForm.value)
       .then((res) => {
-        console.log("完整响应:", res); // 确保这里输出 { code:200, message:"Success", data:true }
         if (res.code === 200) {
-          // 直接检查 res.code
           ElMessage.success("题目增加成功");
           getquestionList();
+          addDialogVisible.value = false;
         } else {
-          ElMessage.error(`题目增加失败，Code: ${res.code}`);
+          ElMessage.error(`错误代码: ${res.code}`);
         }
       })
       .catch((err) => {
-        console.log("请求失败:", err);
+        console.error("提交失败:", err);
         ElMessage.error("新增题目失败");
       });
   });
@@ -956,6 +959,7 @@ const handlePageChange = (newPage) => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
+  height: auto; 
 }
 
 .question-layout {

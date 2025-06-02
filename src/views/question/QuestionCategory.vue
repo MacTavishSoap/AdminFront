@@ -66,11 +66,18 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="Status" label="种类状态" width="100">
-            <template #default="{ row }">
-              <el-tag :type="row.Status === '启用' ? 'success' : 'danger'" size="small">
-                {{ row.Status }}
-              </el-tag>
+          <el-table-column prop="Status" label="种类状态" width="120">
+            <template v-slot="scope">
+              <el-switch
+                v-model="scope.row.Status"
+                :active-color="'#13ce66'"
+                :inactive-color="'#ff4949'"
+                active-text="启用"
+                inactive-text="禁用"
+                :active-value="1"
+                :inactive-value="2"
+                @change="cstatuschange(scope.row.id, scope.row.Status)"
+              ></el-switch>
             </template>
           </el-table-column>
           <el-table-column prop="sort" label="排序" width="80" align="center" />
@@ -96,13 +103,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <el-pagination
-          :current-page="pageNum"
-          :page-size="pageSize"
-          :total="total"
-          @current-change="handlePageChange"
-          layout="total, prev, pager, next, jumper"
-        ></el-pagination>
+
 
         <el-dialog
           v-model="addDialogVisible"
@@ -267,7 +268,7 @@ const rules = {
 const searchFormRef = ref();
 const searchForm = ref({
   pageNum: "",
-  pageSize: "",
+  pageSize: 1000,
   category: "",
   category_type: "",
 });
@@ -288,6 +289,10 @@ const addForm = ref({
   sort: 0,
   categoryType: 0,
   parentId: 0,
+});
+const statuschange = ref({
+  id: "",
+  status: "",
 });
 const pageNum = ref(null); // 当前页数
 const pageSize = ref(null); // 每页显示数量
@@ -363,7 +368,24 @@ const submitAddForm = () => {
       });
   });
 };
+const cstatuschange = (id, status) => {
+  // 确保id和status被正确赋值
+  statuschange.value.id = id;
+  statuschange.value.status = status;
 
+  // 调用API接口
+  try {
+    const params = {
+      id: statuschange.value.id,
+      status: statuschange.value.status,
+    };
+    const response = proxy.$api.categoryupdatestatus(params); // 确保接口路径正确
+    // 处理接口返回的结果
+    if (response.success) {
+    } else {
+    }
+  } catch (error) {}
+};
 const submitUpdateForm = (id) => {
   updateFormRef.value.validate((valid) => {
     if (!valid) {
@@ -465,11 +487,7 @@ const deletecategory = (id) => {
       ElMessage.info("删除操作已取消");
     });
 };
-// 页码变化时触发的处理函数
-const handlePageChange = (newPage) => {
-  searchForm.value.pageNum = newPage;
-  getcategoryList();
-};
+
 </script>
 
 <style scoped>
@@ -479,6 +497,7 @@ const handlePageChange = (newPage) => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
+  height: auto; 
 }
 
 .category-layout {
@@ -517,7 +536,9 @@ const handlePageChange = (newPage) => {
 }
 
 .table-container {
-  padding: 0 20px;
+  flex: 1; /* 填充剩余空间 */
+  overflow: auto; /* 内容超出时滚动 */
+  max-height: 600px; /* 可选：限制最大高度 */
 }
 
 .category-table :deep(.el-table__row) {

@@ -183,6 +183,13 @@ export default {
             data: params,
         })
     },
+    categoryupdatestatus(params) {
+        return Request({
+            url: "/category/updateStatus",
+            method: 'put',
+            data: params,
+        })
+    },
     questiondelete(id) {
         return Request({
             url: "/question/delete",
@@ -308,9 +315,24 @@ export default {
             data: params,
         })
     },
+    userroleupdatewrongstatus(params) {
+        return Request({
+            url: "/UserRole/updateWrongStatus",
+            method: 'put',
+            data: params,
+        })
+    },
+
     userroleassignpermissions(params) {
         return Request({
             url: "/UserRole/vo/assignPermissions",
+            method: 'put',
+            data: params,
+        })
+    },
+    userrolecountupdate(params){
+        return Request({
+            url: "/UserRole/updateaicount",
             method: 'put',
             data: params,
         })
@@ -329,6 +351,14 @@ export default {
             data: params,
         })
     },
+    userroleup(params) {
+        return Request({
+            url: "/User/updateroles",
+            method: 'put',
+            data: params,
+        })
+    },
+
     stats(params){
         return Request({
             url:"/dashboard/stats",

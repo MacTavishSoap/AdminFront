@@ -523,6 +523,7 @@ const deleterole = (id) => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
+  height: auto; 
 }
 
 .role-layout {

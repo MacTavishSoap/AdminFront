@@ -59,6 +59,23 @@
           <el-table-column prop="id" label="ID" min-width="180" />
           <el-table-column prop="openid" label="openid" min-width="180" />
           <el-table-column prop="nickname" label="用户昵称" min-width="180" />
+
+<el-table-column prop="roles" label="状态" width="180">
+  <template #default="scope">
+    <el-select 
+      v-model="scope.row.roles" 
+      placeholder="请选择权限" 
+      @change="(value) => handleRoleChange(scope.row.id, value)">
+      <el-option
+        v-for="role in roleList"
+        :key="role.id"
+        :label="role.role_name"
+        :value="role.user_key"
+      ></el-option>
+    </el-select>
+  </template>
+</el-table-column>
+
           <el-table-column prop="phone" label="电话号码" min-width="200" />
           <el-table-column prop="roles" label="角色" width="180" />
           <el-table-column prop="major" label="备注（专业）" width="180" />
@@ -81,29 +98,6 @@
             </template>
           </el-table-column>
           <el-table-column prop="last_login_ip" label="上次登录ip" width="180" />
-          <el-table-column label="更多操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="showupdateDialog(row)"
-                >修改</el-button
-              >
-              <el-button
-                @click="deleteuser(row.id)"
-                type="text"
-                size="small"
-                style="color: red"
-              >
-                删除
-              </el-button>
-              <el-button
-                @click="changepassword(row.id)"
-                type="text"
-                size="small"
-                style="color: grey"
-              >
-                重置密码
-              </el-button>
-            </template>
-          </el-table-column>
         </el-table>
 
         <!-- 分页组件 -->
@@ -314,6 +308,33 @@ const statuschange = ref({
   id: "",
   status: "",
 });
+const rolechange = ref({
+  id: "",
+  roles: "",
+});
+
+const handleRoleChange = (id, role) => {
+  // 确保id和status被正确赋值
+  rolechange.value.id = id;
+  rolechange.value.roles = role;
+
+  // 调用API接口
+  try {
+    const params = {
+      id: rolechange.value.id,
+      roles: rolechange.value.roles,
+    };
+
+    const response = proxy.$api.userroleup(params); // 确保接口路径正确
+
+    // 处理接口返回的结果
+    if (response.success) {
+      ElMessage.success("权限修改成功");
+      getuserList();
+    } else {
+    }
+  } catch (error) {}
+};
 
 const cstatuschange = (id, status) => {
   // 确保id和status被正确赋值
@@ -331,6 +352,8 @@ const cstatuschange = (id, status) => {
 
     // 处理接口返回的结果
     if (response.success) {
+      ElMessage.success("权限修改成功");
+      getuserList();
     } else {
     }
   } catch (error) {}
@@ -407,7 +430,7 @@ const roleList = ref([]);
 // 获取角色列表
 const getRoleList = () => {
   proxy.$api
-    .rolevolist()
+    .userrolevolist()
     .then((res) => {
       if (res.code === 200) {
         roleList.value = res.data;
@@ -424,73 +447,12 @@ const showAddDialog = () => {
   addDialogVisible.value = true;
 };
 
-const showupdateDialog = (row) => {
-  updateForm.value = {
-    id: row.id,
-    note: row.note,
-    phone: row.phone,
-    roleId: row.role === "user" ? 1 : 2, // 映射 role 字段到 roleId
-    status: row.status,
-    username: row.username,
-  };
-  updateDialogVisible.value = true; // 打开弹窗
-};
-
 onMounted(() => {
   getuserList();
   getRoleList();
 });
 
-const pwDialogVisible = ref(false);
 
-const changepassword = (id) => {
-  passwordform.value.id = id; // 确保 id 正确赋值
-  console.log("id", passwordform); // 打印查看 id 是否正确赋值
-  pwDialogVisible.value = true; // 显示对话框
-};
-
-// 提交密码修改请求
-const submitPassword = async () => {
-  const res = await proxy.$api.userupdatepw(passwordform.value); // 调用用户更新接口
-
-  // 处理接口返回的结果
-  if (res.code == 200) {
-    ElMessage.success("修改用户密码成功");
-    pwDialogVisible.value = false; // 关闭对话框
-    getuserList(); // 重新加载用户列表
-  } else {
-    ElMessage.error("修改用户密码失败");
-  }
-};
-
-const deleteuser = (id) => {
-  // 弹出确认框
-  ElMessageBox.confirm("确定删除该用户吗？", "删除用户", {
-    confirmButtonText: "删除",
-    cancelButtonText: "取消",
-    type: "warning",
-  })
-    .then(() => {
-      // 用户确认删除，构造删除请求的结构体
-      const deleteRequest = {
-        id: id, // 这里传入你想要删除的用户ID
-      };
-
-      // 发送删除请求
-      proxy.$api.userdelete(deleteRequest).then((res) => {
-        if (res.code == 200) {
-          ElMessage.success("用户删除成功");
-          getuserList(); // 删除成功后重新加载用户列表
-        } else {
-          ElMessage.error("用户删除失败");
-        }
-      });
-    })
-    .catch(() => {
-      // 用户取消删除
-      ElMessage.info("删除操作已取消");
-    });
-};
 // 页码变化时触发的处理函数
 const handlePageChange = (newPage) => {
   searchForm.value.pageNum = newPage;
@@ -505,6 +467,8 @@ const handlePageChange = (newPage) => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
+  height: auto;
+  flex:1;
 }
 
 .user-layout {
