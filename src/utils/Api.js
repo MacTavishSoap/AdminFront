@@ -322,6 +322,13 @@ export default {
             data: params,
         })
     },
+    userroleupdatefavstatus(params) {
+        return Request({
+            url: "/UserRole/updateFavouriteStatus",
+            method: 'put',
+            data: params,
+        })
+    },
 
     userroleassignpermissions(params) {
         return Request({

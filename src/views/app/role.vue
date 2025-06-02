@@ -69,7 +69,7 @@
               ></el-switch>
             </template>
           </el-table-column>
-                    <el-table-column prop="favourite" label="角色是否可用收藏本" width="180">
+          <el-table-column prop="favourite" label="角色是否可用收藏本" width="180">
             <template v-slot="scope">
               <el-switch
                 v-model="scope.row.favourite"
