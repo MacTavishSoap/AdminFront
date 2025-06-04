@@ -330,6 +330,21 @@ export default {
         })
     },
 
+    userroleupdatewrongcount(params) {
+        return Request({
+            url: "/UserRole/updatewrongcount",
+            method: 'put',
+            data: params,
+        })
+    },
+    userroleupdatefavcount(params) {
+        return Request({
+            url: "/UserRole/updatefavcount",
+            method: 'put',
+            data: params,
+        })
+    },
+
     userroleassignpermissions(params) {
         return Request({
             url: "/UserRole/vo/assignPermissions",

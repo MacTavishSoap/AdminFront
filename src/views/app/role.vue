@@ -47,7 +47,6 @@
         <el-button type="primary" @click="showAddDialog">
           <el-icon><Plus /></el-icon>新增
         </el-button>
-
       </div>
 
       <!-- 表格区域 -->
@@ -85,15 +84,35 @@
           </el-table-column>
 
           <el-table-column prop="count" label="AI解析可用次数" width="180">
-  <template #default="scope">
-    <el-input-number 
-      v-model="scope.row.count" 
-      :min="0" 
-      :max="9999"
-      @change="(value) => handleAICountChange(scope.row.id, value)"
-    />
-  </template>
-</el-table-column>
+            <template #default="scope">
+              <el-input-number
+                v-model="scope.row.count"
+                :min="0"
+                :max="9999"
+                @change="(value) => handleAICountChange(scope.row.id, value)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="wrongnum" label="错题本题数" width="180">
+            <template #default="scope">
+              <el-input-number
+                v-model="scope.row.wrongnum"
+                :min="0"
+                :max="9999"
+                @change="(value) => handlewrongCountChange(scope.row.id, value)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="favouritenum" label="收藏本题数" width="180">
+            <template #default="scope">
+              <el-input-number
+                v-model="scope.row.favouritenum"
+                :min="0"
+                :max="9999"
+                @change="(value) => handlefavCountChange(scope.row.id, value)"
+              />
+            </template>
+          </el-table-column>
           <el-table-column prop="create_time" label="创建时间" width="180" />
           <el-table-column prop="status" label="角色状态" width="180">
             <template v-slot="scope">
@@ -201,7 +220,10 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="角色描述">
-              <el-input v-model="addForm.description" placeholder="请输入角色描述"></el-input>
+              <el-input
+                v-model="addForm.description"
+                placeholder="请输入角色描述"
+              ></el-input>
             </el-form-item>
           </el-form>
           <template #footer>
@@ -277,7 +299,6 @@ const pageNum = ref(null); // 当前页数
 const pageSize = ref(null); // 每页显示数量
 const total = ref(null); // 总记录数
 
-
 const permissionDialogVisible = ref(false);
 const addDialogVisible = ref(false);
 const updateDialogVisible = ref(false);
@@ -288,8 +309,6 @@ const rules = {
   roleType: [{ required: true, message: "请选择角色类型" }],
   roleName: [{ required: true, message: "请输入角色名称" }],
 };
-
-
 
 const selectmenu = ref({});
 
@@ -314,18 +333,60 @@ const statuschange = ref({
   id: "",
   status: "",
 });
+
+
+
+const handlefavCountChange = async (userId, newCount) => {
+  try {
+    // 构造符合后端要求的参数格式
+    const params = {
+      id: userId,
+      count: newCount,
+    };
+
+    const response = await proxy.$api.userroleupdatefavcount(params);
+
+    if (response.code == 200) {
+      ElMessage.success("收藏本数设置成功");
+    } else {
+      ElMessage.error(response.message || "设置失败");
+    }
+  } catch (error) {
+    console.error("收藏本数设置失败:", error);
+    ElMessage.error("网络错误，请稍后重试");
+  }
+};
+
+const handlewrongCountChange = async (userId, newCount) => {
+  try {
+    // 构造符合后端要求的参数格式
+    const params = {
+      id: userId,
+      count: newCount,
+    };
+
+    const response = await proxy.$api.userroleupdatewrongcount(params);
+
+    if (response.code == 200) {
+      ElMessage.success("错题本数设置成功");
+    } else {
+      ElMessage.error(response.message || "设置失败");
+    }
+  } catch (error) {
+    console.error("错题本数设置失败:", error);
+    ElMessage.error("网络错误，请稍后重试");
+  }
+};
 const handleAICountChange = async (userId, newCount) => {
   try {
     // 构造符合后端要求的参数格式
     const params = {
-
-        id: userId,
-        count: newCount
-      
+      id: userId,
+      count: newCount,
     };
 
     const response = await proxy.$api.userrolecountupdate(params);
-    
+
     if (response.code == 200) {
       ElMessage.success("AI次数设置成功");
     } else {
@@ -397,7 +458,6 @@ const cstatusfavchange = (id, status) => {
   } catch (error) {}
 };
 
-
 const tableData = ref([]);
 
 const res = ref([]);
@@ -442,7 +502,6 @@ const permissionform = ref({
   id: "",
   category_ids: [],
 });
-
 
 // 提交权限
 const submitPermission = () => {
@@ -626,7 +685,7 @@ const deleterole = (id) => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
-  height: auto; 
+  height: auto;
 }
 
 .role-layout {
