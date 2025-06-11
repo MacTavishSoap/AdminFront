@@ -149,6 +149,13 @@
                 style="color: grey"
                 >分配权限</el-button
               >
+              <el-button
+                @click="showCDK(row.user_key)"
+                type="text"
+                size="small"
+                style="color: green"
+                >生成cdk</el-button
+              >
             </template>
           </el-table-column>
         </el-table>
@@ -281,6 +288,149 @@
             </span>
           </template>
         </el-dialog>
+
+        <!-- CDK管理对话框 -->
+        <el-dialog
+          title="CDK管理"
+          v-model="CDKDialogVisible"
+          width="70%"
+          :close-on-click-modal="false"
+        >
+          <el-row gutter="20">
+            <!-- 左边生成部分 -->
+            <el-col :span="8">
+              <h3>生成CDK</h3>
+              <el-form :model="generateForm" label-width="120px">
+                <!-- 角色类型：只读 -->
+                <el-form-item label="角色类型" required>
+                  <el-input v-model="generateForm.role" disabled />
+                </el-form-item>
+
+                <el-form-item label="生成数量" required>
+                  <el-input-number
+                    v-model="generateForm.count"
+                    :min="1"
+                    :max="1000"
+                    controls-position="right"
+                  ></el-input-number>
+                </el-form-item>
+
+                <el-form-item label="有效期(天)" required>
+                  <el-input-number
+                    v-model="generateForm.expire_days"
+                    :min="1"
+                    :max="365"
+                    controls-position="right"
+                  ></el-input-number>
+                </el-form-item>
+
+                <el-form-item>
+                  <el-button type="primary" @click="handleGenerate">立即生成</el-button>
+                </el-form-item>
+              </el-form>
+            </el-col>
+
+            <!-- 右边CDK列表部分 -->
+            <el-col :span="16">
+              <el-form
+                :model="searchFormCDK"
+                :rules="rules"
+                ref="generateFormRef"
+                :inline="true"
+                class="search-form"
+              >
+                <el-form-item label="CDK状态">
+                  <el-select v-model="searchFormCDK.is_used" placeholder="请选择CDK状态">
+                    <el-option label="未使用" :value="0" />
+                    <el-option label="已使用" :value="1" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="开始时间">
+                  <el-date-picker
+                    v-model="searchFormCDK.beginTime"
+                    placeholder="请输入开始时间"
+                    :picker-options="pickerOptions"
+                  />
+                </el-form-item>
+                <el-form-item label="结束时间">
+                  <el-date-picker
+                    v-model="searchFormCDK.endTime"
+                    placeholder="请输入结束时间"
+                    :picker-options="pickerOptions"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="getCDKList">
+                    <el-icon><Search /></el-icon>搜索
+                  </el-button>
+                  <el-button @click="resetcdksearch">
+                    <el-icon><Refresh /></el-icon>重置
+                  </el-button>
+                </el-form-item>
+              </el-form>
+
+              <div class="list-header">
+                <h3>
+                  CDK列表 
+                  <el-tag type="success">全部可用CDK数：{{ totalcdk }}</el-tag>
+                  <el-tag type="info">当前筛选结果：{{ totalCDK }}</el-tag>
+                </h3>
+                <div class="export-buttons">
+                  <el-button 
+                    size="small" 
+                    type="primary"
+                    @click="exportCdks(searchFormCDK.role)"
+                  >
+                    <el-icon><Download /></el-icon>
+                    导出可用CDK
+                  </el-button>
+                  
+                  <el-button 
+                    size="small" 
+                    type="info"
+                    @click="exportAllCdks(searchFormCDK.role)"
+                  >
+                    <el-icon><Download /></el-icon>
+                    导出全部CDK
+                  </el-button>
+                </div>
+              </div>
+
+              <el-table :data="tableDataCDK" stripe row-key="code" style="width: 100%">
+                <el-table-column prop="code" label="CDK" min-width="180" />
+                <el-table-column prop="role" label="角色" min-width="200" />
+                <el-table-column prop="is_used" label="是否使用" width="180">
+                  <template #default="{ row }">
+                    <el-tag
+                      :type="row.is_used ? 'danger' : 'success'"
+                      disable-transitions
+                    >
+                      {{ row.is_used ? "已使用" : "未使用" }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+
+                <el-table-column prop="used_at" label="被使用时间" width="180" />
+                <el-table-column prop="expired_at" label="过期时间" width="180" />
+                <el-table-column prop="created_at" label="创建时间" width="180" />
+                <el-table-column prop="updated_at" label="更新时间" width="180" />
+              </el-table>
+              <!-- 修复后的CDK分页组件 -->
+              <el-pagination
+                :current-page="pageNum2"
+                :page-size="pageSize"
+                :total="totalCDK"
+                @current-change="handlePageChangeCDK"
+                layout="total, prev, pager, next, jumper"
+              />
+            </el-col>
+          </el-row>
+
+          <span slot="footer" class="dialog-footer">
+            <el-button @click="CDKDialogVisible = false">关闭</el-button>
+          </span>
+        </el-dialog>
+
       </div>
     </div>
   </el-container>
@@ -288,17 +438,23 @@
 
 <script setup>
 import { ref, onMounted, getCurrentInstance, computed, nextTick } from "vue";
-import { Plus, Search, Refresh, ArrowDown } from "@element-plus/icons-vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { Plus, Search, Refresh, ArrowDown, Download } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox, ElLoading } from "element-plus";
+import * as XLSX from "xlsx";
 
 const { proxy } = getCurrentInstance();
 const tableRef = ref(null);
 const addFormRef = ref(null);
 const rolelist = ref([]);
 const pageNum = ref(null); // 当前页数
-const pageSize = ref(null); // 每页显示数量
-const total = ref(null); // 总记录数
+const pageNum2 = ref(null); // CDK当前页数
 
+const pageSize = ref(null); // 每页显示数量
+const total = ref(null); // 角色总记录数
+const totalCDK = ref(0); // CDK列表的总数（用于分页）
+const totalcdk = ref(null); // 可用CDK总数
+
+const CDKDialogVisible = ref(false);
 const permissionDialogVisible = ref(false);
 const addDialogVisible = ref(false);
 const updateDialogVisible = ref(false);
@@ -313,11 +469,27 @@ const rules = {
 const selectmenu = ref({});
 
 const searchFormRef = ref();
+
+const generateFormRef = ref();
+
+const generateForm = ref({
+  role: "",
+  count: "",
+  expire_days: "",
+});
 const searchForm = ref({
   pageNum: "",
   pageSize: "",
   roleName: "",
   status: "",
+  beginTime: "",
+  endTime: "",
+});
+const searchFormCDK = ref({
+  pageNum: "",
+  pageSize: "",
+  role: "",
+  is_used: "",
   beginTime: "",
   endTime: "",
 });
@@ -333,8 +505,6 @@ const statuschange = ref({
   id: "",
   status: "",
 });
-
-
 
 const handlefavCountChange = async (userId, newCount) => {
   try {
@@ -459,6 +629,7 @@ const cstatusfavchange = (id, status) => {
 };
 
 const tableData = ref([]);
+const tableDataCDK = ref([]);
 
 const res = ref([]);
 const getCategorylist = () => {
@@ -473,6 +644,59 @@ const getCategorylist = () => {
       ElMessage.error("获取菜单列表失败");
       console.error("获取菜单列表失败:", err);
     });
+};
+
+// 修复后的getCDKList函数 - 解决分页和可用CDK数量问题
+const getCDKList = async () => {
+  try {
+    // 1. 获取当前页面的CDK列表（用于显示）
+    const res = await proxy.$api.getcdklist(searchFormCDK.value);
+    
+    tableDataCDK.value = res.data.list || [];
+    pageNum2.value = res.data.pageNum;
+    pageSize.value = res.data.pageSize;
+    totalCDK.value = res.data.total !== undefined ? res.data.total : res.data.list.length;
+    
+    // 2. 额外获取全部数据来统计可用CDK总数
+    const allCdkParams = {
+      role: searchFormCDK.value.role,
+      pageNum: 1,
+      pageSize: 10000 // 获取所有数据
+    };
+    const allRes = await proxy.$api.getcdklist(allCdkParams);
+    
+    if (allRes.code === 200) {
+      // 修复：计算真正可用的CDK数量（未使用且未过期）
+      totalcdk.value = allRes.data.list.filter((cdk) => {
+        const isNotUsed = !cdk.is_used; // 改为!cdk.is_used
+        const isNotExpired = !cdk.expired_at || new Date(cdk.expired_at) > new Date();
+        return isNotUsed && isNotExpired;
+      }).length;
+    }
+    
+    console.log('CDK数据:', tableDataCDK.value);
+    console.log('CDK总数:', totalCDK.value);
+    console.log('全部可用CDK数量:', totalcdk.value);
+    
+  } catch (err) {
+    ElMessage.error("获取CDK列表失败");
+    console.error("获取CDK列表失败:", err);
+  }
+};
+
+const handleGenerate = async () => {
+  try {
+    const res = await proxy.$api.generatecdk(generateForm.value);
+    if (res.code === 200) {
+      ElMessage.success("CDK生成成功");
+      await getCDKList(); // 重新加载CDK列表
+    } else {
+      ElMessage.error(res.message || "生成CDK失败");
+    }
+  } catch (err) {
+    console.error("生成CDK失败:", err);
+    ElMessage.error("生成CDK失败，请稍后重试");
+  }
 };
 
 const treeData = computed(() => {
@@ -515,6 +739,150 @@ const submitPermission = () => {
       ElMessage.error("角色权限更新失败");
     }
   });
+};
+
+// 修复后的导出功能 - 导出全部可用CDK
+const exportCdks = async (user_key) => {
+  try {
+    // 显示加载提示
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在获取全部CDK数据...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    });
+
+    // 1. 构造获取全部CDK的请求参数
+    const allCdkParams = {
+      role: user_key,
+      pageNum: 1,
+      pageSize: 10000, // 设置一个很大的页面大小来获取所有数据
+    };
+
+    // 2. 调用API获取全部CDK数据
+    const response = await proxy.$api.getcdklist(allCdkParams);
+    
+    // 关闭加载提示
+    loading.close();
+    
+    if (response.code !== 200) {
+      throw new Error(response.message || '获取CDK数据失败');
+    }
+
+    const allCdkData = response.data.list || [];
+
+    // 3. 过滤出可用CDK（未使用且未过期）
+    const availableCdks = allCdkData.filter((cdk) => {
+      const isNotUsed = !cdk.is_used;
+      const isNotExpired = !cdk.expired_at || new Date(cdk.expired_at) > new Date();
+      return isNotUsed && isNotExpired;
+    });
+
+    if (availableCdks.length === 0) {
+      ElMessage.warning("没有可用的CDK可导出");
+      return;
+    }
+
+    // 4. 准备Excel数据
+    const excelData = availableCdks.map((cdk, index) => ({
+      卡券码: cdk.code,
+      "密码（无则不填）": cdk.password || ''
+    }));
+
+    // 5. 创建工作簿
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // 6. 设置列宽
+    ws["!cols"] = [
+      { wch: 20 },  // 密码列宽
+      { wch: 8 },  // 序号列宽
+    ];
+
+    // 7. 添加工作表
+    XLSX.utils.book_append_sheet(wb, ws, "工作表1");
+
+    // 8. 生成文件名（时间+user_key+数量）
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, "0");
+
+    // 生成人类可读时间格式：2025-06-11_14-05-30
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+      now.getDate()
+    )}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+
+    const fileName = `${timestamp}_${user_key}_可用CDK_${availableCdks.length}条.xlsx`;
+
+    // 9. 导出文件
+    XLSX.writeFile(wb, fileName);
+
+    ElMessage.success(`导出成功！共导出 ${availableCdks.length} 条可用CDK`);
+
+  } catch (error) {
+    console.error("导出失败:", error);
+    ElMessage.error("导出失败: " + error.message);
+  }
+};
+
+// 导出全部CDK（包括已使用）的函数
+const exportAllCdks = async (user_key) => {
+  try {
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在获取全部CDK数据...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    });
+
+    const allCdkParams = {
+      role: user_key,
+      pageNum: 1,
+      pageSize: 10000,
+    };
+
+    const response = await proxy.$api.getcdklist(allCdkParams);
+    loading.close();
+
+    if (response.code !== 200) {
+      throw new Error(response.message || '获取CDK数据失败');
+    }
+
+    const allCdkData = response.data.list || [];
+
+    if (allCdkData.length === 0) {
+      ElMessage.warning("没有CDK数据可导出");
+      return;
+    }
+
+    const excelData = allCdkData.map((cdk, index) => ({
+      卡券码: cdk.code,
+      "密码（无则不填）": cdk.password || ''
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    ws["!cols"] = [
+      { wch: 20 },  // 密码
+      { wch: 8 },  // 序号
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "工作表1");
+
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, "0");
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+      now.getDate()
+    )}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+
+    const fileName = `${timestamp}_${user_key}_全部CDK_${allCdkData.length}条.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+
+    ElMessage.success(`导出成功！共导出 ${allCdkData.length} 条CDK记录`);
+
+  } catch (error) {
+    console.error("导出失败:", error);
+    ElMessage.error("导出失败: " + error.message);
+  }
 };
 
 const usergetroleList = () => {
@@ -572,6 +940,13 @@ const submitUpdateForm = () => {
   });
 };
 
+const resetcdksearch = async () => {
+  searchFormCDK.value.is_used = "";
+  searchFormCDK.value.beginTime = "";
+  searchFormCDK.value.endTime = "";
+  await getCDKList();
+};
+
 const resetSearch = () => {
   searchForm.value.roleName = "";
   searchForm.value.status = "";
@@ -605,6 +980,13 @@ const showPermission = (id) => {
     console.log("treeData after update:", treeData);
     permissionDialogVisible.value = true; // 显示对话框
   });
+};
+
+const showCDK = async (user_key) => {
+  generateForm.value.role = user_key;
+  searchFormCDK.value.role = user_key;
+  await getCDKList();
+  CDKDialogVisible.value = true; // 显示对话框
 };
 
 const showAddDialog = () => {
@@ -643,11 +1025,18 @@ onMounted(() => {
   usergetroleList();
   getCategorylist(); // 获取菜单列表
 });
+
 // 页码变化时触发的处理函数
 const handlePageChange = (newPage) => {
   searchForm.value.pageNum = newPage;
   usergetroleList();
 };
+
+const handlePageChangeCDK = (newPage) => {
+  searchFormCDK.value.pageNum = newPage;
+  getCDKList();
+};
+
 const deleterole = (id) => {
   // 弹出确认框
   ElMessageBox.confirm("确定删除该角色吗？", "删除角色", {

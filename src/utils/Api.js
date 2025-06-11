@@ -387,7 +387,30 @@ export default {
             method:'get',
             data:params,
         })
-    }
+    },
+
+    generatecdk(params){
+        return Request({
+            url:"/cdk/generate",
+            method:'get',
+            data:params,
+        })
+    },
+
+    activatecdk(params){
+        return Request({
+            url:"/cdk/activate",
+            method:'get',
+            data:params,
+        })
+    },
+    getcdklist(params){
+        return Request({
+            url:"/cdk/getlist",
+            method:'get',
+            data:params,
+        })
+    },
 
 
 
