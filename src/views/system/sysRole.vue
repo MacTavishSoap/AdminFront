@@ -113,7 +113,7 @@
                   children: 'children',
                   label: 'menuName',
                 }"
-                :check-strictly="true"
+                :check-strictly="false"
                 v-model="permissionform.menu_ids"
                 :default-checked-keys="permissionform.menu_ids"
                 @check-change="handleCheckChange"

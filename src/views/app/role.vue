@@ -179,7 +179,7 @@
                   children: 'children',
                   label: 'category',
                 }"
-                :check-strictly="true"
+                :check-strictly="false"
                 v-model="permissionform.category_ids"
                 :default-checked-keys="permissionform.category_ids"
                 @check-change="handleCheckChange"
@@ -322,6 +322,17 @@
                     :max="365"
                     controls-position="right"
                   ></el-input-number>
+                  <div class="form-item-tip">CDK本身的过期时间</div>
+                </el-form-item>
+
+                <el-form-item label="激活期限(天)" required>
+                  <el-input-number
+                    v-model="generateForm.active_days"
+                    :min="1"
+                    :max="3650"
+                    controls-position="right"
+                  ></el-input-number>
+                  <div class="form-item-tip">用户激活后角色的有效期</div>
                 </el-form-item>
 
                 <el-form-item>
@@ -398,8 +409,8 @@
 
               <el-table :data="tableDataCDK" stripe row-key="code" style="width: 100%">
                 <el-table-column prop="code" label="CDK" min-width="180" />
-                <el-table-column prop="role" label="角色" min-width="200" />
-                <el-table-column prop="is_used" label="是否使用" width="180">
+                <el-table-column prop="role" label="角色" min-width="120" />
+                <el-table-column prop="is_used" label="是否使用" width="100">
                   <template #default="{ row }">
                     <el-tag
                       :type="row.is_used ? 'danger' : 'success'"
@@ -409,11 +420,17 @@
                     </el-tag>
                   </template>
                 </el-table-column>
-
-                <el-table-column prop="used_at" label="被使用时间" width="180" />
-                <el-table-column prop="expired_at" label="过期时间" width="180" />
-                <el-table-column prop="created_at" label="创建时间" width="180" />
-                <el-table-column prop="updated_at" label="更新时间" width="180" />
+                <el-table-column prop="active_days" label="激活期限" width="100">
+                  <template #default="{ row }">
+                    <el-tag type="info" size="small">
+                      {{ row.active_days || 365 }}天
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="used_at" label="被使用时间" width="150" />
+                <el-table-column prop="expired_at" label="CDK过期时间" width="150" />
+                <el-table-column prop="created_at" label="创建时间" width="150" />
+                <el-table-column prop="updated_at" label="更新时间" width="150" />
               </el-table>
               <!-- 修复后的CDK分页组件 -->
               <el-pagination
@@ -476,6 +493,7 @@ const generateForm = ref({
   role: "",
   count: "",
   expire_days: "",
+  active_days: 365, // 激活后有效期，默认365天
 });
 const searchForm = ref({
   pageNum: "",
@@ -1158,5 +1176,12 @@ const deleterole = (id) => {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+.form-item-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 </style>

@@ -66,6 +66,22 @@
           </el-breadcrumb>
         </div>
         
+        <div class="user-info">
+          <el-dropdown @command="handleCommand">
+            <span class="el-dropdown-link">
+              <el-icon><User /></el-icon>
+              {{ sysAdmin.username || '管理员' }}
+              <el-icon class="el-icon--right"><arrow-down /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+        
       </el-header>
       <Tags />
       <el-main>
@@ -80,6 +96,8 @@
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import Tags from "@/components/Tags.vue";
+import { User, ArrowDown } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 import { ref, reactive, getCurrentInstance, nextTick } from "vue";
 const router = useRouter();
@@ -88,7 +106,10 @@ const route = useRoute();
 const { proxy } = getCurrentInstance();
 //菜单数据
 const leftMenuList = proxy.$store.state.leftMenuList;
+//用户信息
+const sysAdmin = proxy.$store.state.sysAdmin;
 console.log("菜单数据：", leftMenuList);
+console.log("用户信息：", sysAdmin);
 
 // 保持路由激活
 const defaultActive = ref(router.currentRoute.value.path);
@@ -106,6 +127,42 @@ const toggleCollapse = () => {
   } else {
     collapseBtnClass.value = "Expand";
   }
+};
+
+// 处理用户下拉菜单命令
+const handleCommand = (command) => {
+  if (command === 'logout') {
+    handleLogout();
+  } else if (command === 'profile') {
+    // 可以跳转到个人信息页面
+    ElMessage.info('个人信息功能待开发');
+  }
+};
+
+// 登出功能
+const handleLogout = () => {
+  ElMessageBox.confirm(
+    '确定要退出登录吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    // 清除本地存储的用户信息
+    store.commit('saveToken', '');
+    store.commit('saveSysAdmin', '');
+    store.commit('saveLeftMenuList', '');
+    store.commit('savePermissionList', '');
+    store.commit('saveActivePath', '');
+    
+    ElMessage.success('退出登录成功');
+    // 跳转到登录页面
+    router.push('/login');
+  }).catch(() => {
+    // 用户取消登出
+  });
 };
 
 
@@ -143,6 +200,28 @@ const toggleCollapse = () => {
     .bread-btn {
       position: fixed;
       margin-left: 40px;
+    }
+    .user-info {
+      .el-dropdown-link {
+        cursor: pointer;
+        color: #606266;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        
+        &:hover {
+          color: #409eff;
+        }
+        
+        .el-icon {
+          margin-right: 5px;
+          
+          &.el-icon--right {
+            margin-left: 5px;
+            margin-right: 0;
+          }
+        }
+      }
     }
   }
   .el-main {
