@@ -1,176 +1,361 @@
 <template>
   <el-container class="home_container">
     <div class="role-layout">
-      <!-- 搜索区域 -->
-      <el-form
-        :model="searchForm"
-        :rules="rules"
-        ref="searchFormRef"
-        :inline="true"
-        class="search-form"
-      >
-        <el-form-item label="角色名称">
-          <el-input v-model="searchForm.roleName" placeholder="请输入角色名称" />
-        </el-form-item>
-        <el-form-item label="角色状态">
-          <el-select v-model="searchForm.status" placeholder="请选择角色状态">
-            <el-option label="启用" value="enabled" />
-            <el-option label="禁用" value="disabled" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="开始时间">
-          <el-date-picker
-            v-model="searchForm.beginTime"
-            placeholder="请输入开始时间"
-            :picker-options="pickerOptions"
-          />
-        </el-form-item>
-        <el-form-item label="结束时间">
-          <el-date-picker
-            v-model="searchForm.endTime"
-            placeholder="请输入结束时间"
-            :picker-options="pickerOptions"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="usergetroleList">
-            <el-icon><Search /></el-icon>搜索
-          </el-button>
-          <el-button @click="resetSearch">
-            <el-icon><Refresh /></el-icon>重置
-          </el-button>
-        </el-form-item>
-      </el-form>
-
-      <!-- 操作按钮区域 -->
-      <div class="action-buttons">
-        <el-button type="primary" @click="showAddDialog">
-          <el-icon><Plus /></el-icon>新增
-        </el-button>
-      </div>
-
-      <!-- 表格区域 -->
-      <div class="table-container">
-        <el-table :data="tableData" stripe row-key="id" style="width: 100%">
-          <el-table-column prop="role_name" label="角色名称" min-width="180" />
-          <el-table-column prop="user_key" label="角色标识" min-width="200" />
-          <el-table-column prop="wrong" label="角色是否可用错题本" width="180">
-            <template v-slot="scope">
-              <el-switch
-                v-model="scope.row.wrong"
-                :active-color="'#13ce66'"
-                :inactive-color="'#ff4949'"
-                active-text="启用"
-                inactive-text="禁用"
-                :active-value="1"
-                :inactive-value="2"
-                @change="cstatuswrongchange(scope.row.id, scope.row.wrong)"
-              ></el-switch>
-            </template>
-          </el-table-column>
-          <el-table-column prop="favourite" label="角色是否可用收藏本" width="180">
-            <template v-slot="scope">
-              <el-switch
-                v-model="scope.row.favourite"
-                :active-color="'#13ce66'"
-                :inactive-color="'#ff4949'"
-                active-text="启用"
-                inactive-text="禁用"
-                :active-value="1"
-                :inactive-value="2"
-                @change="cstatusfavchange(scope.row.id, scope.row.favourite)"
-              ></el-switch>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="count" label="AI解析可用次数" width="180">
-            <template #default="scope">
-              <el-input-number
-                v-model="scope.row.count"
-                :min="0"
-                :max="9999"
-                @change="(value) => handleAICountChange(scope.row.id, value)"
+      <!-- 主选项卡 -->
+      <el-tabs v-model="mainActiveTab" @tab-change="handleMainTabChange">
+        <el-tab-pane label="角色管理" name="role">
+          <!-- 角色搜索区域 -->
+          <el-form
+            :model="searchForm"
+            :rules="rules"
+            ref="searchFormRef"
+            :inline="true"
+            class="search-form"
+          >
+            <el-form-item label="角色名称">
+              <el-input v-model="searchForm.roleName" placeholder="请输入角色名称" />
+            </el-form-item>
+            <el-form-item label="角色状态">
+              <el-select v-model="searchForm.status" placeholder="请选择角色状态">
+                <el-option label="启用" value="enabled" />
+                <el-option label="禁用" value="disabled" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="开始时间">
+              <el-date-picker
+                v-model="searchForm.beginTime"
+                placeholder="请输入开始时间"
+                :picker-options="pickerOptions"
               />
-            </template>
-          </el-table-column>
-          <el-table-column prop="wrongnum" label="错题本题数" width="180">
-            <template #default="scope">
-              <el-input-number
-                v-model="scope.row.wrongnum"
-                :min="0"
-                :max="9999"
-                @change="(value) => handlewrongCountChange(scope.row.id, value)"
+            </el-form-item>
+            <el-form-item label="结束时间">
+              <el-date-picker
+                v-model="searchForm.endTime"
+                placeholder="请输入结束时间"
+                :picker-options="pickerOptions"
               />
-            </template>
-          </el-table-column>
-          <el-table-column prop="favouritenum" label="收藏本题数" width="180">
-            <template #default="scope">
-              <el-input-number
-                v-model="scope.row.favouritenum"
-                :min="0"
-                :max="9999"
-                @change="(value) => handlefavCountChange(scope.row.id, value)"
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="usergetroleList">
+                <el-icon><Search /></el-icon>搜索
+              </el-button>
+              <el-button @click="resetSearch">
+                <el-icon><Refresh /></el-icon>重置
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <!-- 角色操作按钮区域 -->
+          <div class="action-buttons">
+            <el-button type="primary" @click="showAddDialog('role')">
+              <el-icon><Plus /></el-icon>新增角色
+            </el-button>
+          </div>
+
+          <!-- 角色表格区域 -->
+          <div class="table-container">
+            <el-table :data="roleTableData" stripe row-key="id" style="width: 100%">
+              <el-table-column prop="role_name" label="角色名称" min-width="180" />
+              <el-table-column prop="user_key" label="角色标识" min-width="180" />
+              <el-table-column prop="wrong" label="角色是否可用错题本" width="180">
+                <template v-slot="scope">
+                  <el-switch
+                    v-model="scope.row.wrong"
+                    :active-color="'#13ce66'"
+                    :inactive-color="'#ff4949'"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    :active-value="1"
+                    :inactive-value="2"
+                    @change="cstatuswrongchange(scope.row.id, scope.row.wrong)"
+                  ></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column prop="favourite" label="角色是否可用收藏本" width="180">
+                <template v-slot="scope">
+                  <el-switch
+                    v-model="scope.row.favourite"
+                    :active-color="'#13ce66'"
+                    :inactive-color="'#ff4949'"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    :active-value="1"
+                    :inactive-value="2"
+                    @change="cstatusfavchange(scope.row.id, scope.row.favourite)"
+                  ></el-switch>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="count" label="AI解析可用次数" width="180">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.count"
+                    :min="0"
+                    :max="9999"
+                    @change="(value) => handleAICountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="wrongnum" label="错题本题数" width="180">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.wrongnum"
+                    :min="0"
+                    :max="9999"
+                    @change="(value) => handlewrongCountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="favouritenum" label="收藏本题数" width="180">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.favouritenum"
+                    :min="0"
+                    :max="9999"
+                    @change="(value) => handlefavCountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="create_time" label="创建时间" width="180" />
+              <el-table-column prop="status" label="角色状态" width="180">
+                <template v-slot="scope">
+                  <el-switch
+                    v-model="scope.row.status"
+                    :active-color="'#13ce66'"
+                    :inactive-color="'#ff4949'"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    :active-value="1"
+                    :inactive-value="2"
+                    @change="cstatuschange(scope.row.id, scope.row.status)"
+                  ></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column prop="description" label="备注" min-width="200" />
+
+              <el-table-column label="更多操作" width="150" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" size="small" @click="showupdateDialog(row)"
+                    >修改</el-button
+                  >
+                  <el-button
+                    @click="deleterole(row.id)"
+                    type="text"
+                    size="small"
+                    style="color: red"
+                    >删除</el-button
+                  >
+                  <el-button
+                    @click="showLevelPermission(row.id)"
+                    type="text"
+                    size="small"
+                    style="color: grey"
+                    >分配权限</el-button
+                  >
+                  <el-button
+                    @click="showCDK(row.user_key)"
+                    type="text"
+                    size="small"
+                    style="color: green"
+                    >生成cdk</el-button
+                  >
+                </template>
+              </el-table-column>
+            </el-table>
+            <!-- 角色分页组件 -->
+            <el-pagination
+              :current-page="pageNum"
+              :page-size="pageSize"
+              :total="total"
+              @current-change="handlePageChange"
+              layout="total, prev, pager, next, jumper"
+            ></el-pagination>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="等级管理" name="level">
+          <!-- 等级搜索区域 -->
+          <el-form
+            :model="levelSearchForm"
+            :rules="rules"
+            ref="levelSearchFormRef"
+            :inline="true"
+            class="search-form"
+          >
+            <el-form-item label="等级名称">
+              <el-input v-model="levelSearchForm.roleName" placeholder="请输入等级名称" />
+            </el-form-item>
+            <el-form-item label="等级状态">
+              <el-select v-model="levelSearchForm.status" placeholder="请选择等级状态">
+                <el-option label="启用" value="enabled" />
+                <el-option label="禁用" value="disabled" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="开始时间">
+              <el-date-picker
+                v-model="levelSearchForm.beginTime"
+                placeholder="请输入开始时间"
+                :picker-options="pickerOptions"
               />
-            </template>
-          </el-table-column>
-          <el-table-column prop="create_time" label="创建时间" width="180" />
-          <el-table-column prop="status" label="角色状态" width="180">
-            <template v-slot="scope">
-              <el-switch
-                v-model="scope.row.status"
-                :active-color="'#13ce66'"
-                :inactive-color="'#ff4949'"
-                active-text="启用"
-                inactive-text="禁用"
-                :active-value="1"
-                :inactive-value="2"
-                @change="cstatuschange(scope.row.id, scope.row.status)"
-              ></el-switch>
-            </template>
-          </el-table-column>
-          <el-table-column prop="description" label="备注" min-width="200" />
+            </el-form-item>
+            <el-form-item label="结束时间">
+              <el-date-picker
+                v-model="levelSearchForm.endTime"
+                placeholder="请输入结束时间"
+                :picker-options="pickerOptions"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="getLevelList">
+                <el-icon><Search /></el-icon>搜索
+              </el-button>
+              <el-button @click="resetLevelSearch">
+                <el-icon><Refresh /></el-icon>重置
+              </el-button>
+            </el-form-item>
+          </el-form>
 
-          <el-table-column label="更多操作" width="150" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="showupdateDialog(row)"
-                >修改</el-button
-              >
-              <el-button
-                @click="deleterole(row.id)"
-                type="text"
-                size="small"
-                style="color: red"
-                >删除</el-button
-              >
-              <el-button
-                @click="showPermission(row.id)"
-                type="text"
-                size="small"
-                style="color: grey"
-                >分配权限</el-button
-              >
-              <el-button
-                @click="showCDK(row.user_key)"
-                type="text"
-                size="small"
-                style="color: green"
-                >生成cdk</el-button
-              >
-            </template>
-          </el-table-column>
-        </el-table>
-        <!-- 分页组件 -->
-        <el-pagination
-          :current-page="pageNum"
-          :page-size="pageSize"
-          :total="total"
-          @current-change="handlePageChange"
-          layout="total, prev, pager, next, jumper"
-        ></el-pagination>
+          <!-- 等级操作按钮区域 -->
+          <div class="action-buttons">
+            <el-button type="primary" @click="showAddDialog('level')">
+              <el-icon><Plus /></el-icon>新增等级
+            </el-button>
+          </div>
 
-        <el-dialog v-model="permissionDialogVisible" title="分配权限" width="50%">
+          <!-- 等级表格区域 -->
+          <div class="table-container">
+            <el-table :data="levelTableData" stripe row-key="id" style="width: 100%">
+              <el-table-column prop="role_name" label="等级名称" min-width="120" />
+              <el-table-column prop="user_key" label="等级标识" min-width="120" />
+              <el-table-column prop="required_points" label="所需积分" width="150">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.required_points"
+                    :min="0"
+                    :max="999999"
+                    size="small"
+                    @change="(value) => handleRequiredPointsChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="wrong" label="错题本可用" width="150">
+                <template v-slot="scope">
+                  <el-switch
+                    v-model="scope.row.wrong"
+                    :active-color="'#13ce66'"
+                    :inactive-color="'#ff4949'"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    :active-value="1"
+                    :inactive-value="2"
+                    size="small"
+                    @change="cstatuswrongchange(scope.row.id, scope.row.wrong)"
+                  ></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column prop="favourite" label="收藏本可用" width="150">
+                <template v-slot="scope">
+                  <el-switch
+                    v-model="scope.row.favourite"
+                    :active-color="'#13ce66'"
+                    :inactive-color="'#ff4949'"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    :active-value="1"
+                    :inactive-value="2"
+                    size="small"
+                    @change="cstatusfavchange(scope.row.id, scope.row.favourite)"
+                  ></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column prop="count" label="AI解析次数" width="150">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.count"
+                    :min="0"
+                    :max="9999"
+                    size="small"
+                    @change="(value) => handleAICountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="wrongnum" label="错题本题数" width="150">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.wrongnum"
+                    :min="0"
+                    :max="9999"
+                    size="small"
+                    @change="(value) => handlewrongCountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="favouritenum" label="收藏本题数" width="150">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.favouritenum"
+                    :min="0"
+                    :max="9999"
+                    size="small"
+                    @change="(value) => handlefavCountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="create_time" label="创建时间" width="150" />
+              <el-table-column prop="status" label="等级状态" width="150">
+                <template v-slot="scope">
+                  <el-switch
+                    v-model="scope.row.status"
+                    :active-color="'#13ce66'"
+                    :inactive-color="'#ff4949'"
+                    active-text="启用"
+                    inactive-text="禁用"
+                    :active-value="1"
+                    :inactive-value="2"
+                    size="small"
+                    @change="cstatuschange(scope.row.id, scope.row.status)"
+                  ></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column prop="description" label="备注" min-width="150" />
+
+              <el-table-column label="更多操作" width="200" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" size="small" @click="showupdateDialog(row)"
+                    >修改</el-button
+                  >
+                  <el-button
+                    @click="deleterole(row.id)"
+                    type="text"
+                    size="small"
+                    style="color: red"
+                    >删除</el-button
+                  >
+                  <el-button
+                    @click="showPermission(row.id)"
+                    type="text"
+                    size="small"
+                    style="color: grey"
+                    >分配权限</el-button
+                  >
+                </template>
+              </el-table-column>
+            </el-table>
+            <!-- 等级分页组件 -->
+            <el-pagination
+              :current-page="levelPageNum"
+              :page-size="levelPageSize"
+              :total="levelTotal"
+              @current-change="handleLevelPageChange"
+              layout="total, prev, pager, next, jumper"
+            ></el-pagination>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+
+      <el-dialog v-model="permissionDialogVisible" :title="mainActiveTab === 'role' ? '分配菜单权限' : '分配题库权限'" width="50%">
           <el-form :model="permissionform">
-            <el-form-item label="选择菜单">
+            <el-form-item :label="mainActiveTab === 'role' ? '选择菜单' : '选择题库'">
               <el-tree
                 :data="treeData"
                 show-checkbox
@@ -191,47 +376,130 @@
             <el-button @click="permissionDialogVisible = false">取消</el-button>
             <el-button type="primary" @click="submitPermission">确定</el-button>
           </span>
-        </el-dialog>
+      </el-dialog>
 
-        <el-dialog
-          v-model="addDialogVisible"
-          title="新增角色"
-          width="500px"
-          :close-on-click-modal="false"
-        >
+      <el-dialog
+        v-model="addDialogVisible"
+        :title="currentDialogType === 'role' ? '新增角色' : '新增等级'"
+        width="500px"
+        :close-on-click-modal="false"
+      >
           <el-form :model="addForm" label-width="100px" :rules="rules" ref="addFormRef">
-            <el-tabs v-model="activeTab">
-              <el-tab-pane label="角色类型" name="menuType"> </el-tab-pane>
-            </el-tabs>
-            <el-form-item
-              label="角色名称"
-              :rules="[{ required: true, message: '请输入角色名称', trigger: 'blur' }]"
-            >
-              <el-input
-                v-model="addForm.role_name"
-                placeholder="请输入角色名称"
-              ></el-input>
-            </el-form-item>
+            <!-- 角色表单 -->
+            <template v-if="currentDialogType === 'role'">
+              <el-form-item
+                label="角色名称"
+                :rules="[{ required: true, message: '请输入角色名称', trigger: 'blur' }]"
+              >
+                <el-input
+                  v-model="addForm.role_name"
+                  placeholder="请输入角色名称"
+                ></el-input>
+              </el-form-item>
 
-            <el-form-item label="角色标签">
-              <el-input
-                v-model="addForm.user_key"
-                placeholder="请输入角色标签"
-              ></el-input>
-            </el-form-item>
+              <el-form-item label="角色标签">
+                <el-input
+                  v-model="addForm.user_key"
+                  placeholder="请输入角色标签"
+                ></el-input>
+              </el-form-item>
 
-            <el-form-item label="角色状态">
-              <el-radio-group v-model="addForm.status">
-                <el-radio :label="1">启用</el-radio>
-                <el-radio :label="2">禁用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="角色描述">
-              <el-input
-                v-model="addForm.description"
-                placeholder="请输入角色描述"
-              ></el-input>
-            </el-form-item>
+              <el-form-item label="角色状态">
+                <el-radio-group v-model="addForm.status">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item label="角色描述">
+                <el-input
+                  v-model="addForm.description"
+                  placeholder="请输入角色描述"
+                ></el-input>
+              </el-form-item>
+            </template>
+
+            <!-- 等级表单 -->
+            <template v-else-if="currentDialogType === 'level'">
+              <el-form-item
+                label="等级名称"
+                :rules="[{ required: true, message: '请输入等级名称', trigger: 'blur' }]"
+              >
+                <el-input
+                  v-model="addForm.role_name"
+                  placeholder="请输入等级名称"
+                ></el-input>
+              </el-form-item>
+
+              <el-form-item label="等级标识">
+                <el-input
+                  v-model="addForm.user_key"
+                  placeholder="请输入等级标识"
+                ></el-input>
+              </el-form-item>
+
+              <el-form-item label="所需积分">
+                <el-input-number
+                  v-model="addForm.required_points"
+                  :min="0"
+                  :max="999999"
+                  placeholder="请输入所需积分"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="错题本可用">
+                <el-radio-group v-model="addForm.wrong">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="收藏本可用">
+                <el-radio-group v-model="addForm.favourite">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="AI解析次数">
+                <el-input-number
+                  v-model="addForm.count"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入AI解析次数"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="错题本题数">
+                <el-input-number
+                  v-model="addForm.wrongnum"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入错题本题数"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="收藏本题数">
+                <el-input-number
+                  v-model="addForm.favouritenum"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入收藏本题数"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="等级状态">
+                <el-radio-group v-model="addForm.status">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item label="等级描述">
+                <el-input
+                  v-model="addForm.description"
+                  placeholder="请输入等级描述"
+                ></el-input>
+              </el-form-item>
+            </template>
           </el-form>
           <template #footer>
             <span class="dialog-footer">
@@ -239,63 +507,146 @@
               <el-button type="primary" @click="submitAddForm">确定</el-button>
             </span>
           </template>
-        </el-dialog>
+      </el-dialog>
 
-        <el-dialog
-          v-model="updateDialogVisible"
-          title="修改角色"
-          width="500px"
-          :close-on-click-modal="false"
-        >
+      <el-dialog
+        v-model="updateDialogVisible"
+        :title="currentDialogType === 'role' ? '修改角色' : '修改等级'"
+        width="500px"
+        :close-on-click-modal="false"
+      >
           <el-form :model="addForm" label-width="100px" :rules="rules" ref="addFormRef">
-            <el-tabs v-model="activeTab">
-              <el-tab-pane label="角色类型" name="menuType"> </el-tab-pane>
-            </el-tabs>
-            <el-form-item
-              label="角色名称"
-              :rules="[{ required: true, message: '请输入角色名称', trigger: 'blur' }]"
-            >
-              <el-input
-                v-model="addForm.role_name"
-                placeholder="请输入角色名称"
-              ></el-input>
-            </el-form-item>
+            <!-- 角色表单 -->
+            <template v-if="currentDialogType === 'role'">
+              <el-form-item
+                label="角色名称"
+                :rules="[{ required: true, message: '请输入角色名称', trigger: 'blur' }]"
+              >
+                <el-input
+                  v-model="addForm.role_name"
+                  placeholder="请输入角色名称"
+                ></el-input>
+              </el-form-item>
 
-            <el-form-item label="角色标签">
-              <el-input
-                v-model="addForm.user_key"
-                placeholder="请输入角色标签"
-              ></el-input>
-            </el-form-item>
+              <el-form-item label="角色标签">
+                <el-input
+                  v-model="addForm.user_key"
+                  placeholder="请输入角色标签"
+                ></el-input>
+              </el-form-item>
 
-            <el-form-item label="角色状态">
-              <el-radio-group v-model="addForm.status">
-                <el-radio :label="1">启用</el-radio>
-                <el-radio :label="2">禁用</el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="角色描述">
-              <el-select v-model="addForm.description" placeholder="请选择权限">
-                <el-option label="全部权限" value="all"></el-option>
-                <el-option label="部分权限" value="part"></el-option>
-              </el-select>
-            </el-form-item>
+              <el-form-item label="角色状态">
+                <el-radio-group v-model="addForm.status">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item label="角色描述">
+                <el-input
+                  v-model="addForm.description"
+                  placeholder="请输入角色描述"
+                ></el-input>
+              </el-form-item>
+            </template>
+
+            <!-- 等级表单 -->
+            <template v-else-if="currentDialogType === 'level'">
+              <el-form-item
+                label="等级名称"
+                :rules="[{ required: true, message: '请输入等级名称', trigger: 'blur' }]"
+              >
+                <el-input
+                  v-model="addForm.role_name"
+                  placeholder="请输入等级名称"
+                ></el-input>
+              </el-form-item>
+
+              <el-form-item label="等级标识" :rules="[{ required: true, message: '请输入等级标识', trigger: 'blur' }]">
+                <el-input
+                  v-model="addForm.user_key"
+                  placeholder="请输入等级标识"
+                ></el-input>
+              </el-form-item>
+
+              <el-form-item label="所需积分">
+                <el-input-number
+                  v-model="addForm.required_points"
+                  :min="0"
+                  :max="999999"
+                  placeholder="请输入所需积分"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="错题本可用">
+                <el-radio-group v-model="addForm.wrong">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="收藏本可用">
+                <el-radio-group v-model="addForm.favourite">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="AI解析次数">
+                <el-input-number
+                  v-model="addForm.count"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入AI解析次数"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="错题本题数">
+                <el-input-number
+                  v-model="addForm.wrongnum"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入错题本题数"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="收藏本题数">
+                <el-input-number
+                  v-model="addForm.favouritenum"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入收藏本题数"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="等级状态">
+                <el-radio-group v-model="addForm.status">
+                  <el-radio :label="1">启用</el-radio>
+                  <el-radio :label="2">禁用</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item label="等级描述">
+                <el-input
+                  v-model="addForm.description"
+                  placeholder="请输入等级描述"
+                ></el-input>
+              </el-form-item>
+            </template>
           </el-form>
           <template #footer>
             <span class="dialog-footer">
-              <el-button @click="addDialogVisible = false">取消</el-button>
+              <el-button @click="updateDialogVisible = false">取消</el-button>
               <el-button type="primary" @click="submitUpdateForm">确定</el-button>
             </span>
           </template>
-        </el-dialog>
+      </el-dialog>
 
-        <!-- CDK管理对话框 -->
-        <el-dialog
-          title="CDK管理"
-          v-model="CDKDialogVisible"
-          width="70%"
-          :close-on-click-modal="false"
-        >
+      <!-- CDK管理对话框 -->
+      <el-dialog
+        title="CDK管理"
+        v-model="CDKDialogVisible"
+        width="70%"
+        :close-on-click-modal="false"
+      >
           <el-row gutter="20">
             <!-- 左边生成部分 -->
             <el-col :span="8">
@@ -443,12 +794,11 @@
             </el-col>
           </el-row>
 
-          <span slot="footer" class="dialog-footer">
-            <el-button @click="CDKDialogVisible = false">关闭</el-button>
-          </span>
-        </el-dialog>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="CDKDialogVisible = false">关闭</el-button>
+        </span>
+      </el-dialog>
 
-      </div>
     </div>
   </el-container>
 </template>
@@ -470,6 +820,27 @@ const pageSize = ref(null); // 每页显示数量
 const total = ref(null); // 角色总记录数
 const totalCDK = ref(0); // CDK列表的总数（用于分页）
 const totalcdk = ref(null); // 可用CDK总数
+
+// 主选项卡相关
+const mainActiveTab = ref("role"); // 主选项卡：role 或 level
+const currentDialogType = ref("role"); // 当前对话框类型
+
+// 角色相关数据
+const roleTableData = ref([]);
+
+// 等级相关数据
+const levelTableData = ref([]);
+const levelPageNum = ref(1);
+const levelPageSize = ref(10);
+const levelTotal = ref(0);
+const levelSearchForm = ref({
+  pageNum: "",
+  pageSize: "",
+  roleName: "",
+  status: "",
+  beginTime: "",
+  endTime: "",
+});
 
 const CDKDialogVisible = ref(false);
 const permissionDialogVisible = ref(false);
@@ -517,6 +888,18 @@ const addForm = ref({
   user_key: "string",
   role_name: "string",
   status: 0,
+  required_points: 0,
+  type: "role", // role 或 level
+  wrong: 1, // 错题本可用性，默认启用
+  favourite: 1, // 收藏本可用性，默认启用
+  count: 3, // AI解析次数，默认3次
+  wrongnum: 10, // 错题本题数，默认10题
+  favouritenum: 10, // 收藏本题数，默认10题
+});
+
+// 计算属性：根据主选项卡过滤数据
+const tableData = computed(() => {
+  return mainActiveTab.value === "role" ? roleTableData.value : levelTableData.value;
 });
 
 const statuschange = ref({
@@ -646,7 +1029,7 @@ const cstatusfavchange = (id, status) => {
   } catch (error) {}
 };
 
-const tableData = ref([]);
+
 const tableDataCDK = ref([]);
 
 const res = ref([]);
@@ -751,10 +1134,12 @@ const submitPermission = () => {
 
   proxy.$api.userroleassignpermissions(permissionform.value).then((res) => {
     if (res.code === 200) {
-      ElMessage.success("角色权限更新成功");
+      const successMsg = mainActiveTab.value === 'role' ? '角色权限更新成功' : '等级权限更新成功';
+      ElMessage.success(successMsg);
       permissionDialogVisible.value = false; // 关闭对话框
     } else {
-      ElMessage.error("角色权限更新失败");
+      const errorMsg = mainActiveTab.value === 'role' ? '角色权限更新失败' : '等级权限更新失败';
+      ElMessage.error(errorMsg);
     }
   });
 };
@@ -903,14 +1288,29 @@ const exportAllCdks = async (user_key) => {
   }
 };
 
+// 主选项卡切换处理
+const handleMainTabChange = (tabName) => {
+  mainActiveTab.value = tabName;
+  if (tabName === "role") {
+    usergetroleList();
+  } else if (tabName === "level") {
+    getLevelList();
+  }
+};
+
+// 获取角色列表
 const usergetroleList = () => {
+  const params = {
+    ...searchForm.value,
+    type: "role" // 只获取角色类型的数据
+  };
   proxy.$api
-    .userrolelist(searchForm.value)
+    .userrolelist(params)
     .then((res) => {
-      tableData.value = res.data.list || [];
-      pageNum.value = res.data.pageNum; // 更新当前页
-      pageSize.value = res.data.pageSize; // 更新每页数量
-      total.value = res.data.total; // 更新总记录数
+      roleTableData.value = res.data.list || [];
+      pageNum.value = res.data.pageNum;
+      pageSize.value = res.data.pageSize;
+      total.value = res.data.total;
     })
     .catch((err) => {
       ElMessage.error("获取角色列表失败");
@@ -918,22 +1318,92 @@ const usergetroleList = () => {
     });
 };
 
+// 获取等级列表
+const getLevelList = () => {
+  const params = {
+    ...levelSearchForm.value,
+    pageNum: levelPageNum.value,
+    pageSize: levelPageSize.value,
+    type: "level" // 只获取等级类型的数据
+  };
+  proxy.$api
+    .userrolelist(params)
+    .then((res) => {
+      levelTableData.value = res.data.list || [];
+      levelPageNum.value = res.data.pageNum;
+      levelPageSize.value = res.data.pageSize;
+      levelTotal.value = res.data.total;
+    })
+    .catch((err) => {
+      ElMessage.error("获取等级列表失败");
+      console.error("获取等级列表失败:", err);
+    });
+};
+
+// 重置等级搜索
+const resetLevelSearch = () => {
+  levelSearchForm.value.roleName = "";
+  levelSearchForm.value.status = "";
+  levelSearchForm.value.beginTime = "";
+  levelSearchForm.value.endTime = "";
+  getLevelList();
+};
+
+// 等级分页处理
+const handleLevelPageChange = (newPage) => {
+  levelPageNum.value = newPage;
+  getLevelList();
+};
+
+// 处理所需积分变化
+const handleRequiredPointsChange = async (id, newPoints) => {
+  try {
+    const params = {
+      id: id,
+      required_points: newPoints,
+    };
+
+    const response = await proxy.$api.userroleupdate(params);
+
+    if (response.code == 200) {
+      ElMessage.success("所需积分设置成功");
+    } else {
+      ElMessage.error(response.message || "设置失败");
+    }
+  } catch (error) {
+    console.error("所需积分设置失败:", error);
+    ElMessage.error("网络错误，请稍后重试");
+  }
+};
+
 const submitAddForm = () => {
   addFormRef.value.validate((valid) => {
     if (!valid) {
       return ElMessage.error("请填写完整的表单数据");
     }
-    console.log("请求数据:", addForm.value); // 打印请求数据
+    
+    // 设置类型
+    addForm.value.type = currentDialogType.value;
+    
+    console.log("请求数据:", addForm.value);
     proxy.$api
       .userroleadd(addForm.value)
       .then((res) => {
-        ElMessage.success("新增角色成功");
-        addDialogVisible.value = false; // 关闭对话框
-        usergetroleList(); // 重新加载角色列表
+        const successMsg = currentDialogType.value === "role" ? "新增角色成功" : "新增等级成功";
+        ElMessage.success(successMsg);
+        addDialogVisible.value = false;
+        
+        // 根据类型刷新对应列表
+        if (currentDialogType.value === "role") {
+          usergetroleList();
+        } else {
+          getLevelList();
+        }
       })
       .catch((err) => {
         console.log("请求失败:", err);
-        ElMessage.error("新增角色失败");
+        const errorMsg = currentDialogType.value === "role" ? "新增角色失败" : "新增等级失败";
+        ElMessage.error(errorMsg);
       });
   });
 };
@@ -943,18 +1413,29 @@ const submitUpdateForm = () => {
     if (!valid) {
       return ElMessage.error("请填写完整的表单数据");
     }
-    console.log("请求数据:", addForm.value); // 打印请求数据
-    const res = proxy.$api.userroleupdate(addForm.value); // 调用角色更新接口
-
-    // 处理接口返回的结果
-    if (res.success) {
-      ElMessage.success("修改角色成功"); // 显示成功消息
-      addDialogVisible.value = false; // 关闭对话框
-      usergetroleList(); // 重新加载角色列表
-    } else {
-      console.log("请求失败:", err);
-      ElMessage.error("修改角色失败"); // 请求发生错误时显示错误消息
-    }
+    
+    // 设置类型
+    addForm.value.type = currentDialogType.value;
+    
+    console.log("请求数据:", addForm.value);
+    proxy.$api.userroleupdate(addForm.value)
+      .then((res) => {
+        const successMsg = currentDialogType.value === "role" ? "修改角色成功" : "修改等级成功";
+        ElMessage.success(successMsg);
+        updateDialogVisible.value = false;
+        
+        // 根据类型刷新对应列表
+        if (currentDialogType.value === "role") {
+          usergetroleList();
+        } else {
+          getLevelList();
+        }
+      })
+      .catch((err) => {
+        console.log("请求失败:", err);
+        const errorMsg = currentDialogType.value === "role" ? "修改角色失败" : "修改等级失败";
+        ElMessage.error(errorMsg);
+      });
   });
 };
 
@@ -1000,6 +1481,21 @@ const showPermission = (id) => {
   });
 };
 
+// 显示等级权限分配对话框
+const showLevelPermission = (id) => {
+  permissionform.value.id = id;
+  permissionform.value.category_ids = []; // 清空之前的题库权限
+  console.log("调用 showLevelPermission，准备获取题库数据");
+  console.log("当前权限form数据:", permissionform.value);
+  getCategorylist(); // 调用获取题库数据的方法
+  getselect(id); // 调用获取已分配的题库权限
+  console.log("现在的permissionform:", permissionform.value);
+  nextTick(() => {
+    console.log("treeData after update:", treeData);
+    permissionDialogVisible.value = true; // 显示对话框
+  });
+};
+
 const showCDK = async (user_key) => {
   generateForm.value.role = user_key;
   searchFormCDK.value.role = user_key;
@@ -1007,7 +1503,17 @@ const showCDK = async (user_key) => {
   CDKDialogVisible.value = true; // 显示对话框
 };
 
-const showAddDialog = () => {
+const showAddDialog = (type = "role") => {
+  currentDialogType.value = type;
+  // 重置表单数据
+  addForm.value = {
+    description: "",
+    user_key: "",
+    role_name: "",
+    status: 1,
+    required_points: 0,
+    type: type,
+  };
   addDialogVisible.value = true;
 };
 
@@ -1034,13 +1540,20 @@ const getselect = async (id) => {
 };
 
 const showupdateDialog = (role) => {
-  addForm.value = { ...role }; // 确保数据正确复制
-  console.log("数据", addForm);
+  addForm.value = { ...role };
+  // 根据数据的type字段或者当前主选项卡设置对话框类型
+  currentDialogType.value = role.type || mainActiveTab.value;
+  console.log("数据", addForm.value);
   updateDialogVisible.value = true;
 };
 
 onMounted(() => {
-  usergetroleList();
+  // 根据当前选项卡加载对应数据
+  if (mainActiveTab.value === "role") {
+    usergetroleList();
+  } else {
+    getLevelList();
+  }
   getCategorylist(); // 获取菜单列表
 });
 
@@ -1056,8 +1569,11 @@ const handlePageChangeCDK = (newPage) => {
 };
 
 const deleterole = (id) => {
+  const isRole = mainActiveTab.value === "role";
+  const itemType = isRole ? "角色" : "等级";
+  
   // 弹出确认框
-  ElMessageBox.confirm("确定删除该角色吗？", "删除角色", {
+  ElMessageBox.confirm(`确定删除该${itemType}吗？`, `删除${itemType}`, {
     confirmButtonText: "删除",
     cancelButtonText: "取消",
     type: "warning",
@@ -1065,14 +1581,19 @@ const deleterole = (id) => {
     .then(() => {
       // 用户确认删除，构造删除请求的结构体
       const deleteRequest = {
-        id: id, // 这里传入你想要删除的角色ID
+        id: id,
       };
 
       // 发送删除请求
       proxy.$api.userroledelete(deleteRequest).then((res) => {
         if (res.code == 200) {
-          ElMessage.success("角色删除成功");
-          usergetroleList(); // 删除成功后重新加载角色列表
+          ElMessage.success(`${itemType}删除成功`);
+          // 根据类型刷新对应列表
+          if (isRole) {
+            usergetroleList();
+          } else {
+            getLevelList();
+          }
         } else {
           ElMessage.error("角色删除失败");
         }
@@ -1088,6 +1609,9 @@ const deleterole = (id) => {
 <style scoped>
 /* 保持原有的样式不变 */
 .home_container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   padding: 30px;
   background-color: #fff;
   border-radius: 10px;
