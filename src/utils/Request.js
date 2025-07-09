@@ -12,12 +12,12 @@ const instance = axios.create({
 instance.interceptors.request.use(
     (req) => {
         const headers = req.headers;
-        const token = storage.getItem("token") || {};
+        const token = storage.getItem("token") || "";
         
         // 添加管理端标识
         headers['X-Client-Type'] = 'admin';
 
-        if (!headers.Authorization) {
+        if (!headers.Authorization && token) {
             headers.Authorization = 'Bearer ' + token;
         }
         return req;
@@ -29,9 +29,8 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
     (res) => {
         const { code, data, message } = res.data;
-        console.log('Interceptor code type:', typeof code); // 添加这行
-        if (code == 403 || code==901) {
-            ElMessage.error(message);
+        if (code == 403 || code == 901 || code == 401) {
+            ElMessage.error(message || '用户未登录或登录已过期');
             storage.clearAll();
             setTimeout(() => {
                 router.push('/login');
@@ -39,8 +38,21 @@ instance.interceptors.response.use(
         } else if (code == 200) {
             return res.data;
         } else {
-            ElMessage.error(message);
+            ElMessage.error(message || '请求失败');
         }
+    },
+    (error) => {
+        // 处理HTTP状态码错误
+        if (error.response && error.response.status === 401) {
+            ElMessage.error('用户未登录或登录已过期');
+            storage.clearAll();
+            setTimeout(() => {
+                router.push('/login');
+            }, 1500);
+        } else {
+            ElMessage.error('网络请求失败');
+        }
+        return Promise.reject(error);
     }
 );
 

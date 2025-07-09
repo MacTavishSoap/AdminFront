@@ -117,7 +117,7 @@ D.南疆铁路
 参考答案：B
 解析：测试
 
-25.教育学的发展总是受到具体的社会政治、经济、文化条件的制约。（）
+2.教育学的发展总是受到具体的社会政治、经济、文化条件的制约。（）
 参考答案:正确
 解析:教育学的发展总是与具体的社会政治、经济、文化条件密切相关，反映着这些条件的变化和要求。
 
@@ -127,6 +127,14 @@ B.他认为船是没有生命的，而另外的都是有生命的
 C.他认为牛、人、猪都有头、脚和身体，而船没有
 D.以上理由都不正确
 参考答案：CB
+
+4. 求解方程 $x^2 - 5x + 6 = 0$。
+A. $x = 2$ 或 $x = 3$
+B. $x = 1$ 或 $x = 6$
+C. $x = -2$ 或 $x = -3$
+D. $x = 0$ 或 $x = 5$
+参考答案：A
+解析：因式分解得 $(x-2)(x-3) = 0$，所以 $x = 2$ 或 $x = 3$。
     </pre
           >
         </div>
@@ -156,11 +164,15 @@ D.以上理由都不正确
               prop="content"
               label="题目内容"
               width="200"
-            ></el-table-column>
+            >
+              <template v-slot="scope">
+                <div v-html="formatMathText(scope.row.content)"></div>
+              </template>
+            </el-table-column>
             <el-table-column prop="options" label="选项" width="300">
               <template v-slot="scope">
                 <div v-for="(option, idx) in scope.row.options" :key="idx">
-                  {{ String.fromCharCode(65 + idx) }}. {{ option.content }}
+                  {{ String.fromCharCode(65 + idx) }}. <span v-html="formatMathText(option.content)"></span>
                 </div>
               </template>
             </el-table-column>
@@ -176,7 +188,11 @@ D.以上理由都不正确
               prop="explanation"
               label="解析"
               width="200"
-            ></el-table-column>
+            >
+              <template v-slot="scope">
+                <div v-html="formatMathText(scope.row.explanation)"></div>
+              </template>
+            </el-table-column>
           </el-table>
           <span slot="footer" class="dialog-footer">
             <span>总题数: {{ parsedQuestions.length }}</span>
@@ -556,9 +572,10 @@ D.以上理由都不正确
 
 <script setup>
 import { ref, onMounted, getCurrentInstance, computed } from "vue";
-import { Plus, Search, Refresh, ArrowDown } from "@element-plus/icons-vue";
+import { Plus, Search, Refresh, ArrowDown, Minus } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useStore } from "vuex";
+import { formatMathText, getMathStyles } from "@/utils/mathRenderer";
 
 const store = useStore();
 
@@ -579,6 +596,7 @@ const addDialogVisible = ref(false);
 const updateDialogVisible = ref(false);
 const uploadVisible = ref(false);
 const previewVisible = ref(false);
+const loading = ref(false);
 
 const activeTab = ref("questionType");
 
@@ -729,58 +747,72 @@ const submitsingle = () => {
 
 const sysAdmin = proxy.$store.state.sysAdmin;
 const submitAddForm = () => {
-  addFormRef.value.validate((valid) => {
-    if (!valid) {
-      return ElMessage.error("请填写完整的表单数据");
+  // 1. 检查分类是否选择
+  if (!ctid.value.categoryId) {
+    ElMessage.error("请选择题目分类");
+    return;
+  }
+
+  // 2. 检查是否有解析的题目数据
+  if (!parsedQuestions.value || parsedQuestions.value.length === 0) {
+    ElMessage.error("没有可提交的题目数据");
+    return;
+  }
+
+  // 3. 检查用户权限
+  const currentUserId = sysAdmin?.ID;
+  if (!currentUserId) {
+    ElMessage.error("用户未登录，无法创建题目");
+    return;
+  }
+
+  // 4. 设置加载状态
+  loading.value = true;
+
+  // 5. 确保每个问题的 createdBy 被赋值
+  addForm.value = parsedQuestions.value.map((question) => {
+    const baseData = {
+      ...question,
+      createdBy: currentUserId, // 使用当前用户 ID
+      categoryId: ctid.value.categoryId,
+      tf: question.type === 1 ? question.answer[0] : undefined,
+      status: question.status || 1, // 默认启用
+      type: question.type,
+    };
+
+    if (question.type !== 1) {
+      baseData.options = question.options.map((option) => ({
+        content: option.content,
+      }));
     }
 
-    // 1. 检查用户权限
-    const currentUserId = sysAdmin?.id;
-    if (!currentUserId) {
-      ElMessage.error("用户未登录，无法创建题目");
-      return;
-    }
-
-    // 2. 确保每个问题的 createdBy 被赋值
-    addForm.value = parsedQuestions.value.map((question) => {
-      const baseData = {
-        ...question,
-        createdBy: currentUserId, // 使用当前用户 ID
-        categoryId: ctid.value.categoryId,
-        tf: question.type === 1 ? question.answer[0] : undefined,
-        status: question.status,
-        type: question.type,
-      };
-
-      if (question.type !== 1) {
-        baseData.options = question.options.map((option) => ({
-          content: option.content,
-        }));
-      }
-
-      return baseData;
-    });
-
-    // 3. 打印调试信息
-    console.log("最终提交数据:", addForm.value);
-
-    // 4. 提交到后端
-    proxy.$api
-      .questionadd(addForm.value)
-      .then((res) => {
-        if (res.code === 200) {
-          ElMessage.success("题目增加成功");
-          getquestionList();
-          addDialogVisible.value = false;
-        } else {
-          ElMessage.error(`错误代码: ${res.code}`);
-        }
-      })
-      .catch((err) => {
-        console.error("提交失败:", err);
-        ElMessage.error("新增题目失败");
-      });
+    return baseData;
   });
+
+  // 6. 打印调试信息
+  console.log("最终提交数据:", addForm.value);
+
+  // 7. 提交到后端
+  proxy.$api
+    .questionadd(addForm.value)
+    .then((res) => {
+      if (res.code === 200) {
+        ElMessage.success(`成功添加 ${addForm.value.length} 道题目`);
+        getquestionList();
+        previewVisible.value = false; // 关闭预览弹窗
+        parsedQuestions.value = []; // 清空解析数据
+        ctid.value.categoryId = null; // 重置分类选择
+      } else {
+        ElMessage.error(`提交失败: ${res.message || '未知错误'}`);
+      }
+    })
+    .catch((err) => {
+      console.error("提交失败:", err);
+      ElMessage.error("新增题目失败，请检查网络连接或联系管理员");
+    })
+    .finally(() => {
+      loading.value = false; // 取消加载状态
+    });
 };
 
 const submitUpdateForm = () => {
@@ -960,6 +992,68 @@ const handlePageChange = (newPage) => {
   border-radius: 10px;
   min-height: calc(100vh - 60px);
   height: auto; 
+}
+
+/* 数学公式样式 */
+:deep(.math-inline) {
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: #2c3e50;
+  padding: 0 2px;
+}
+
+:deep(.math-block) {
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  color: #2c3e50;
+  text-align: center;
+  margin: 10px 0;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #007bff;
+}
+
+:deep(.math-fraction) {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: center;
+  margin: 0 2px;
+}
+
+:deep(.math-numerator) {
+  display: block;
+  border-bottom: 1px solid #333;
+  padding-bottom: 2px;
+  font-size: 0.9em;
+}
+
+:deep(.math-denominator) {
+  display: block;
+  padding-top: 2px;
+  font-size: 0.9em;
+}
+
+:deep(.math-sqrt) {
+  position: relative;
+  display: inline-block;
+  margin: 0 2px;
+}
+
+:deep(.math-sqrt-content) {
+  border-top: 1px solid #333;
+  padding-top: 2px;
+  margin-left: 2px;
+}
+
+:deep(sup) {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+:deep(sub) {
+  font-size: 0.75em;
+  vertical-align: sub;
 }
 
 .question-layout {
