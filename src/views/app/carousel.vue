@@ -556,16 +556,22 @@ const submitUpload = () => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
-  height: auto; 
+  height: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.ban-layout {
+.question-layout {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  overflow: hidden;
 }
 
 .search-form {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -589,13 +595,57 @@ const submitUpload = () => {
 }
 
 .action-buttons {
+  flex-shrink: 0;
   display: flex;
   gap: 12px;
   padding: 0 20px;
 }
 
 .table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 0 20px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.table-container :deep(.el-table) {
+  flex: 1;
+  overflow: auto;
+}
+
+.table-container :deep(.el-table__body-wrapper) {
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+}
+
+.table-container :deep(.el-pagination) {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .search-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .home_container {
+    padding: 15px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .table-container {
+    padding: 0 10px;
+  }
 }
 
 .ban-table :deep(.el-table__row) {

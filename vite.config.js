@@ -20,6 +20,7 @@ export default defineConfig({
     port: 5002, // 前端端口
     proxy: {
       '/api': {
+        //http://localhost:9091
         target: 'https://arkedu.tech', // 后端服务地址
         changeOrigin: true,  // 更改来源，避免跨域问题
       },

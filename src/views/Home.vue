@@ -76,6 +76,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+                <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
                 <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -89,6 +90,44 @@
         <router-view />
       </el-main>
     </el-container>
+    
+    <!-- 修改密码对话框 -->
+    <el-dialog
+      v-model="changePasswordVisible"
+      title="修改密码"
+      width="400px"
+      :before-close="handleClosePasswordDialog"
+    >
+      <el-form
+         :model="passwordForm"
+         :rules="passwordRules"
+         ref="passwordFormRef"
+         label-width="100px"
+       >
+         <el-form-item label="新密码" prop="newPassword">
+           <el-input
+             v-model="passwordForm.newPassword"
+             type="password"
+             placeholder="请输入新密码"
+             show-password
+           />
+         </el-form-item>
+         <el-form-item label="确认密码" prop="confirmPassword">
+           <el-input
+             v-model="passwordForm.confirmPassword"
+             type="password"
+             placeholder="请再次输入新密码"
+             show-password
+           />
+         </el-form-item>
+       </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="handleClosePasswordDialog">取消</el-button>
+          <el-button type="primary" @click="handleChangePassword">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </el-container>
 </template>
 
@@ -104,6 +143,35 @@ const router = useRouter();
 const store = useStore();
 const route = useRoute();
 const { proxy } = getCurrentInstance();
+
+// 修改密码相关数据
+const changePasswordVisible = ref(false);
+const passwordFormRef = ref();
+const passwordForm = reactive({
+  newPassword: '',
+  confirmPassword: ''
+});
+
+// 密码验证规则
+const passwordRules = {
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== passwordForm.newPassword) {
+          callback(new Error('两次输入的密码不一致'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+};
 //菜单数据
 const leftMenuList = proxy.$store.state.leftMenuList;
 //用户信息
@@ -136,6 +204,8 @@ const handleCommand = (command) => {
   } else if (command === 'profile') {
     // 可以跳转到个人信息页面
     ElMessage.info('个人信息功能待开发');
+  } else if (command === 'changePassword') {
+    showChangePasswordDialog();
   }
 };
 
@@ -162,6 +232,69 @@ const handleLogout = () => {
     router.push('/login');
   }).catch(() => {
     // 用户取消登出
+  });
+};
+
+// 显示修改密码对话框
+const showChangePasswordDialog = () => {
+  changePasswordVisible.value = true;
+  // 重置表单
+  passwordForm.newPassword = '';
+  passwordForm.confirmPassword = '';
+  nextTick(() => {
+    if (passwordFormRef.value) {
+      passwordFormRef.value.clearValidate();
+    }
+  });
+};
+
+// 关闭修改密码对话框
+const handleClosePasswordDialog = () => {
+  changePasswordVisible.value = false;
+  // 重置表单
+  passwordForm.newPassword = '';
+  passwordForm.confirmPassword = '';
+  if (passwordFormRef.value) {
+    passwordFormRef.value.clearValidate();
+  }
+};
+
+// 处理密码修改
+const handleChangePassword = () => {
+  passwordFormRef.value.validate((valid) => {
+    if (valid) {
+      // 简单的原密码验证（前端验证，实际应该由后端验证）
+      // 这里我们直接使用新密码，因为原接口不支持原密码验证
+      
+      // 调用修改密码API，使用现有的adminupdatepw接口
+      const params = {
+        Id: sysAdmin.id, // 当前管理员ID
+        Password: passwordForm.newPassword // 新密码
+      };
+      
+      proxy.$api.adminupdatepw(params)
+        .then((res) => {
+          if (res.code === 200) {
+            ElMessage.success('密码修改成功，请重新登录');
+            handleClosePasswordDialog();
+            // 修改密码成功后，清除登录状态，跳转到登录页
+            setTimeout(() => {
+              store.commit('saveToken', '');
+              store.commit('saveSysAdmin', '');
+              store.commit('saveLeftMenuList', '');
+              store.commit('savePermissionList', '');
+              store.commit('saveActivePath', '');
+              router.push('/login');
+            }, 1500);
+          } else {
+            ElMessage.error(res.message || '密码修改失败');
+          }
+        })
+        .catch((error) => {
+          console.error('修改密码失败:', error);
+          ElMessage.error('密码修改失败，请稍后重试');
+        });
+    }
   });
 };
 

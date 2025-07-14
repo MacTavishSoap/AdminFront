@@ -412,8 +412,21 @@ export default {
         })
     },
 
+    // 排行榜接口
+    getLeaderboard(params) {
+        return Request({
+            url: "/app/leaderboard/list",
+            method: 'get',
+            data: params,
+        })
+    },
 
+    getUserRank(params) {
+        return Request({
+            url: "/app/leaderboard/user-rank",
+            method: 'get',
+            data: params,
+        })
+    },
 
-
-
-} 
+}

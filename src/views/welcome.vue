@@ -96,33 +96,47 @@
     <!-- 底部卡片 -->
     <el-row :gutter="20" class="bottom-section">
       <el-col :xs="24" :lg="16">
-        <el-card shadow="hover" class="popular-questions">
+        <el-card shadow="hover" class="leaderboard-card">
           <div class="card-header">
-            <h3>热门题目</h3>
-            <el-button link type="primary">查看更多</el-button>
+            <h3>用户排行榜</h3>
+            <el-button link type="primary" @click="refreshLeaderboard">刷新</el-button>
           </div>
           <div class="tabs-container">
-            <el-tabs v-model="activeTab">
-              <el-tab-pane label="单选题" name="single"></el-tab-pane>
-              <el-tab-pane label="多选题" name="multiple"></el-tab-pane>
-              <el-tab-pane label="判断题" name="judge"></el-tab-pane>
+            <el-tabs v-model="leaderboardType" @tab-change="handleLeaderboardTypeChange">
+              <el-tab-pane label="今日排行" name="daily"></el-tab-pane>
+              <el-tab-pane label="本周排行" name="weekly"></el-tab-pane>
+              <el-tab-pane label="总排行" name="total"></el-tab-pane>
             </el-tabs>
           </div>
-          <el-table :data="popularQuestions" style="width: 100%">
-            <el-table-column prop="rank" label="排名" width="70" />
-            <el-table-column prop="title" label="题目标题" min-width="200" />
-            <el-table-column prop="usageCount" label="使用次数" width="120">
+          <el-table :data="leaderboardData" style="width: 100%" v-loading="leaderboardLoading">
+            <el-table-column prop="rank" label="排名" width="70">
               <template #default="scope">
-                {{ formatNumber(scope.row.usageCount) }}
+                <span :class="getRankClass(scope.row.rank)">{{ scope.row.rank }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="correctRate" label="正确率" width="120">
+            <el-table-column label="用户" min-width="150">
               <template #default="scope">
-                {{ scope.row.correctRate }}%
-                <span :class="['trend', scope.row.trend]">
-                  <el-icon v-if="scope.row.trend === 'up'"><ArrowUp /></el-icon>
-                  <el-icon v-else><ArrowDown /></el-icon>
-                </span>
+                <div class="user-info">
+                  <el-avatar :size="32" :src="scope.row.avatar" class="user-avatar">
+                    {{ scope.row.nickname?.charAt(0) || 'U' }}
+                  </el-avatar>
+                  <div class="user-details">
+                    <div class="nickname">{{ scope.row.nickname || '匿名用户' }}</div>
+                    <div class="province">{{ scope.row.province || '未知地区' }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="score" label="答题数" width="100">
+              <template #default="scope">
+                <span class="score-text">{{ Math.floor(scope.row.score) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="Continuelogin" label="连续登录" width="100">
+              <template #default="scope">
+                <el-tag :type="getContinueLoginTagType(scope.row.Continuelogin)" size="small">
+                  {{ scope.row.Continuelogin }}天
+                </el-tag>
               </template>
             </el-table-column>
           </el-table>
@@ -163,6 +177,9 @@ const sysAdmin = proxy.$store.state.sysAdmin;
 const userRole = computed(() => sysAdmin.Username || "管理员");
 
 const activeTab = ref("single");
+const leaderboardType = ref("daily");
+const leaderboardData = ref([]);
+const leaderboardLoading = ref(false);
 const lineChartRef = ref(null);
 const pieChartRef = ref(null);
 let lineChart = null;
@@ -265,6 +282,54 @@ const updatePieChart = () => {
   pieChart.setOption(option);
 };
 
+// 获取排行榜数据
+const getLeaderboard = async () => {
+  leaderboardLoading.value = true;
+  try {
+    const res = await proxy.$api.getLeaderboard({
+      type: leaderboardType.value,
+      count: 10
+    });
+    if (res.code === 200) {
+      leaderboardData.value = res.data || [];
+    } else {
+      ElMessage.error("获取排行榜失败");
+    }
+  } catch (err) {
+    console.error("获取排行榜失败:", err);
+    ElMessage.error("获取排行榜失败");
+  } finally {
+    leaderboardLoading.value = false;
+  }
+};
+
+// 刷新排行榜
+const refreshLeaderboard = () => {
+  getLeaderboard();
+};
+
+// 处理排行榜类型切换
+const handleLeaderboardTypeChange = (type) => {
+  leaderboardType.value = type;
+  getLeaderboard();
+};
+
+// 获取排名样式类
+const getRankClass = (rank) => {
+  if (rank === 1) return 'rank-first';
+  if (rank === 2) return 'rank-second';
+  if (rank === 3) return 'rank-third';
+  return 'rank-normal';
+};
+
+// 获取连续登录标签类型
+const getContinueLoginTagType = (days) => {
+  if (days >= 30) return 'danger';
+  if (days >= 14) return 'warning';
+  if (days >= 7) return 'success';
+  return 'info';
+};
+
 // 窗口resize处理
 const handleResize = () => {
   lineChart?.resize();
@@ -273,6 +338,7 @@ const handleResize = () => {
 
 onMounted(async () => {
   await getstat();
+  await getLeaderboard();
   initCharts();
   window.addEventListener("resize", handleResize);
 });
@@ -401,7 +467,7 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 
-.popular-questions,
+.leaderboard-card,
 .question-types {
   height: 100%;
   border-radius: 8px;
@@ -431,5 +497,68 @@ onMounted(async () => {
   font-size: 24px;
   font-weight: bold;
   color: #303133;
+}
+
+/* 排行榜样式 */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.nickname {
+  font-weight: 500;
+  color: #303133;
+  font-size: 14px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.province {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-text {
+  font-weight: 600;
+  color: #409eff;
+}
+
+/* 排名样式 */
+.rank-first {
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.rank-second {
+  color: #c0c0c0;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.rank-third {
+  color: #cd7f32;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.rank-normal {
+  color: #303133;
+  font-weight: 500;
 }
 </style>

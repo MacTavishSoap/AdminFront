@@ -51,11 +51,14 @@
           <el-table-column prop="id" label="ID" width="180" />
           <el-table-column prop="category" label="种类名称" min-width="180">
             <template #default="{ row }">
-              <span class="flex items-center">
+              <span class="flex items-center" :class="getCategoryLevelClass(row)">
                 <el-icon v-if="row.icon" class="mr-2">
                   <component :is="row.icon" />
                 </el-icon>
-                {{ row.category }}
+                <el-tag :type="getCategoryTagType(row)" size="small" class="category-level-tag">
+                  {{ getCategoryLevel(row) }}级
+                </el-tag>
+                <span class="category-name">{{ row.category }}</span>
               </span>
             </template>
           </el-table-column>
@@ -97,7 +100,7 @@
                 type="text"
                 size="small"
                 style="color: red"
-                v-if="checkPermission(leftcategorylist)"
+                v-if="isLeafNode(row)"
                 >删除</el-button
               >
             </template>
@@ -116,14 +119,17 @@
               <el-tab-pane label="种类类型" name="categoryType"> </el-tab-pane>
             </el-tabs>
             <el-form-item
-              label="种类类型"
-              :rules="[{ required: true, message: '请选择种类类型', trigger: 'blur' }]"
+              label="种类层级"
+              :rules="[{ required: true, message: '请输入种类层级', trigger: 'blur' }]"
             >
-              <el-radio-group v-model="addForm.categoryType">
-                <el-radio-button :label="1">一级种类</el-radio-button>
-                <el-radio-button :label="2">二级种类</el-radio-button>
-                <el-radio-button :label="3">三级种类</el-radio-button>
-              </el-radio-group>
+              <el-input-number 
+                v-model="addForm.categoryType" 
+                :min="1" 
+                :max="10" 
+                placeholder="请输入层级数字"
+                controls-position="right"
+              />
+              <span class="level-hint">支持1-10级分类</span>
             </el-form-item>
 
             <el-form-item label="上级种类">
@@ -183,14 +189,17 @@
             </el-tabs>
 
             <el-form-item
-              label="种类类型"
-              :rules="[{ required: true, message: '请选择种类类型', trigger: 'blur' }]"
+              label="种类层级"
+              :rules="[{ required: true, message: '请输入种类层级', trigger: 'blur' }]"
             >
-              <el-radio-group v-model="updateForm.categoryType">
-                <el-radio-button :label="1">一级种类</el-radio-button>
-                <el-radio-button :label="2">二级种类</el-radio-button>
-                <el-radio-button :label="3">三级种类</el-radio-button>
-              </el-radio-group>
+              <el-input-number 
+                v-model="updateForm.categoryType" 
+                :min="1" 
+                :max="10" 
+                placeholder="请输入层级数字"
+                controls-position="right"
+              />
+              <span class="level-hint">支持1-10级分类</span>
             </el-form-item>
 
             <el-form-item label="上级种类">
@@ -459,6 +468,35 @@ const checkPermission = (treeData) => {
   }
   return true; // 整棵树都没有子节点
 };
+
+// 判断是否为叶子节点（最底层节点）
+const isLeafNode = (node) => {
+  return !node.children || node.children.length === 0;
+};
+
+// 删除菜单函数
+const deleteMenu = (id) => {
+  deletecategory(id);
+};
+
+// 获取分类层级
+const getCategoryLevel = (row) => {
+  return row.categoryType || 1;
+};
+
+// 获取分类层级样式类
+const getCategoryLevelClass = (row) => {
+  const level = getCategoryLevel(row);
+  return `category-level-${level}`;
+};
+
+// 获取分类标签类型
+const getCategoryTagType = (row) => {
+  const level = getCategoryLevel(row);
+  const tagTypes = ['', 'primary', 'success', 'info', 'warning', 'danger'];
+  const extendedTypes = ['primary', 'success', 'info', 'warning', 'danger', 'primary', 'success', 'info', 'warning', 'danger'];
+  return level <= 5 ? tagTypes[level] : extendedTypes[(level - 1) % 5];
+};
 const deletecategory = (id) => {
   // 弹出确认框
   ElMessageBox.confirm("确定删除该种类吗？", "删除种类", {
@@ -473,7 +511,7 @@ const deletecategory = (id) => {
       };
 
       // 发送删除请求
-      proxy.$api.categorydelete(deleteRequest).then((res) => {
+      proxy.$api.deletecategory(deleteRequest).then((res) => {
         if (res.code == 200) {
           ElMessage.success("种类删除成功");
           getcategoryList(); // 删除成功后重新加载种类列表
@@ -497,16 +535,22 @@ const deletecategory = (id) => {
   background-color: #fff;
   border-radius: 10px;
   min-height: calc(100vh - 60px);
-  height: auto; 
+  height: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .category-layout {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  overflow: hidden;
 }
 
 .search-form {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -530,15 +574,50 @@ const deletecategory = (id) => {
 }
 
 .action-buttons {
+  flex-shrink: 0;
   display: flex;
   gap: 12px;
   padding: 0 20px;
 }
 
 .table-container {
-  flex: 1; /* 填充剩余空间 */
-  overflow: auto; /* 内容超出时滚动 */
-  max-height: 600px; /* 可选：限制最大高度 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.table-container :deep(.el-table) {
+  flex: 1;
+  overflow: auto;
+}
+
+.table-container :deep(.el-table__body-wrapper) {
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .search-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .home_container {
+    padding: 15px;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .table-container {
+    padding: 0 10px;
+  }
 }
 
 .category-table :deep(.el-table__row) {
@@ -583,5 +662,98 @@ const deletecategory = (id) => {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+/* 分类层级样式 */
+.category-level-tag {
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.category-name {
+  font-weight: 500;
+}
+
+.level-hint {
+  margin-left: 10px;
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 不同层级的颜色样式 */
+.category-level-1 {
+  .category-name {
+    color: #409EFF;
+    font-weight: 600;
+  }
+}
+
+.category-level-2 {
+  .category-name {
+    color: #67C23A;
+    font-weight: 600;
+  }
+}
+
+.category-level-3 {
+  .category-name {
+    color: #E6A23C;
+    font-weight: 600;
+  }
+}
+
+.category-level-4 {
+  .category-name {
+    color: #F56C6C;
+    font-weight: 600;
+  }
+}
+
+.category-level-5 {
+  .category-name {
+    color: #909399;
+    font-weight: 600;
+  }
+}
+
+/* 6级及以上循环使用颜色 */
+.category-level-6 {
+  .category-name {
+    color: #409EFF;
+    font-weight: 500;
+    font-style: italic;
+  }
+}
+
+.category-level-7 {
+  .category-name {
+    color: #67C23A;
+    font-weight: 500;
+    font-style: italic;
+  }
+}
+
+.category-level-8 {
+  .category-name {
+    color: #E6A23C;
+    font-weight: 500;
+    font-style: italic;
+  }
+}
+
+.category-level-9 {
+  .category-name {
+    color: #F56C6C;
+    font-weight: 500;
+    font-style: italic;
+  }
+}
+
+.category-level-10 {
+  .category-name {
+    color: #909399;
+    font-weight: 500;
+    font-style: italic;
+  }
 }
 </style>
