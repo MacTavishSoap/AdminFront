@@ -60,24 +60,32 @@
           <el-table-column prop="openid" label="openid" min-width="180" />
           <el-table-column prop="nickname" label="用户昵称" min-width="180" />
 
-<el-table-column prop="roles" label="状态" width="180">
-  <template #default="scope">
-    <el-select 
-      v-model="scope.row.roles" 
-      placeholder="请选择权限" 
-      @change="(value) => handleRoleChange(scope.row.id, value)">
-      <el-option
-        v-for="role in roleList"
-        :key="role.id"
-        :label="role.role_name"
-        :value="role.user_key"
-      ></el-option>
-    </el-select>
-  </template>
-</el-table-column>
-
           <el-table-column prop="phone" label="电话号码" min-width="200" />
-          <el-table-column prop="roles" label="角色" width="180" />
+          <el-table-column prop="roles" label="角色" width="180">
+            <template #default="scope">
+              <el-select 
+                v-model="scope.row.roles" 
+                placeholder="请选择角色" 
+                @change="(value) => handleRoleChange(scope.row.id, value)">
+                <el-option
+                  v-for="role in roleList"
+                  :key="role.id"
+                  :label="role.role_name"
+                  :value="role.user_key"
+                ></el-option>
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column prop="points" label="积分" width="120">
+            <template #default="scope">
+              <el-tag type="success">{{ scope.row.points || 0 }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="level" label="等级" width="120">
+            <template #default="scope">
+              <el-tag type="primary">{{ scope.row.level || 'lv0' }}</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="major" label="备注（专业）" width="180" />
           <el-table-column prop="total_time" label="总刷题时间" width="180" />
           <el-table-column prop="total_questions" label="总刷题数" width="180" />
@@ -98,6 +106,23 @@
             </template>
           </el-table-column>
           <el-table-column prop="last_login_ip" label="上次登录ip" width="180" />
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="showUpdateDialog(row)"
+                >修改</el-button
+              >
+              <el-button link type="warning" size="small" @click="showPasswordDialog(row)"
+                >改密码</el-button
+              >
+              <el-button
+                @click="deleteUser(row.id)"
+                type="text"
+                size="small"
+                style="color: red"
+                >删除</el-button
+              >
+            </template>
+          </el-table-column>
         </el-table>
 
         <!-- 分页组件 -->
@@ -240,7 +265,7 @@
       </el-form>
 
       <span slot="footer" class="dialog-footer">
-        <el-button @click="addDialogVisible = false">取消</el-button>
+        <el-button @click="pwDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitPassword">提交</el-button>
       </span>
     </el-dialog>
@@ -266,6 +291,7 @@ const isExpanded = ref(true);
 const permissionDialogVisible = ref(false);
 const addDialogVisible = ref(false);
 const updateDialogVisible = ref(false);
+const pwDialogVisible = ref(false);
 
 const activeTab = ref("userType");
 
@@ -314,26 +340,29 @@ const rolechange = ref({
 });
 
 const handleRoleChange = (id, role) => {
-  // 确保id和status被正确赋值
+  // 确保id和roles被正确赋值
   rolechange.value.id = id;
   rolechange.value.roles = role;
 
   // 调用API接口
-  try {
-    const params = {
-      id: rolechange.value.id,
-      roles: rolechange.value.roles,
-    };
+  const params = {
+    id: rolechange.value.id,
+    roles: rolechange.value.roles,
+  };
 
-    const response = proxy.$api.userroleup(params); // 确保接口路径正确
-
-    // 处理接口返回的结果
-    if (response.success) {
-      ElMessage.success("权限修改成功");
-      getuserList();
-    } else {
-    }
-  } catch (error) {}
+  proxy.$api.userroleup(params)
+    .then((response) => {
+      if (response.code === 200) {
+        ElMessage.success("角色修改成功");
+        getuserList();
+      } else {
+        ElMessage.error(response.message || "角色修改失败");
+      }
+    })
+    .catch((error) => {
+      console.error("角色修改失败:", error);
+      ElMessage.error("角色修改失败");
+    });
 };
 
 const cstatuschange = (id, status) => {
@@ -342,21 +371,24 @@ const cstatuschange = (id, status) => {
   statuschange.value.status = status;
 
   // 调用API接口
-  try {
-    const params = {
-      id: statuschange.value.id,
-      status: statuschange.value.status,
-    };
+  const params = {
+    id: statuschange.value.id,
+    status: statuschange.value.status,
+  };
 
-    const response = proxy.$api.userupdatestatus(params); // 确保接口路径正确
-
-    // 处理接口返回的结果
-    if (response.success) {
-      ElMessage.success("权限修改成功");
-      getuserList();
-    } else {
-    }
-  } catch (error) {}
+  proxy.$api.userupdatestatus(params)
+    .then((response) => {
+      if (response.code === 200) {
+        ElMessage.success("状态修改成功");
+        getuserList();
+      } else {
+        ElMessage.error(response.message || "状态修改失败");
+      }
+    })
+    .catch((error) => {
+      console.error("状态修改失败:", error);
+      ElMessage.error("状态修改失败");
+    });
 };
 
 const getuserList = () => {
@@ -404,16 +436,21 @@ const submitUpdateForm = () => {
       return ElMessage.error("请填写完整的表单数据");
     }
     console.log("请求数据:", updateForm.value); // 打印请求数据
-    const res = proxy.$api.userupdate(updateForm.value); // 调用用户更新接口
-
-    // 处理接口返回的结果
-    if (res.res.code == 200) {
-      ElMessage.success("修改用户成功"); // 显示成功消息
-      addDialogVisible.value = false; // 关闭对话框
-      getuserList(); // 重新加载用户列表
-    } else {
-      ElMessage.error("修改用户失败"); // 请求发生错误时显示错误消息
-    }
+    
+    proxy.$api.userupdate(updateForm.value)
+      .then((res) => {
+        if (res.code === 200) {
+          ElMessage.success("修改用户成功");
+          updateDialogVisible.value = false; // 关闭修改对话框
+          getuserList(); // 重新加载用户列表
+        } else {
+          ElMessage.error(res.message || "修改用户失败");
+        }
+      })
+      .catch((error) => {
+        console.error("修改用户失败:", error);
+        ElMessage.error("修改用户失败");
+      });
   });
 };
 
@@ -433,7 +470,8 @@ const getRoleList = () => {
     .userrolevolist()
     .then((res) => {
       if (res.code === 200) {
-        roleList.value = res.data;
+        // 过滤掉等级相关的角色，只保留type为'role'的数据
+        roleList.value = res.data.filter(role => role.type === 'role');
       } else {
         ElMessage.error("获取角色列表失败");
       }
@@ -445,6 +483,64 @@ const getRoleList = () => {
 
 const showAddDialog = () => {
   addDialogVisible.value = true;
+};
+
+const showUpdateDialog = (user) => {
+  updateForm.value = { ...user };
+  updateDialogVisible.value = true;
+};
+
+const showPasswordDialog = (user) => {
+  passwordform.value.id = user.id;
+  passwordform.value.password = "";
+  pwDialogVisible.value = true;
+};
+
+const submitPassword = () => {
+  if (!passwordform.value.password) {
+    ElMessage.error("请输入新密码");
+    return;
+  }
+  
+  proxy.$api.userupdatepassword(passwordform.value)
+    .then((res) => {
+      if (res.code === 200) {
+        ElMessage.success("密码修改成功");
+        pwDialogVisible.value = false;
+      } else {
+        ElMessage.error(res.message || "密码修改失败");
+      }
+    })
+    .catch((error) => {
+      console.error("密码修改失败:", error);
+      ElMessage.error("密码修改失败");
+    });
+};
+
+const deleteUser = (id) => {
+  ElMessageBox.confirm('确定删除该用户吗？', '删除用户', {
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+    .then(() => {
+      proxy.$api.userdelete({ id })
+        .then((res) => {
+          if (res.code === 200) {
+            ElMessage.success('用户删除成功');
+            getuserList();
+          } else {
+            ElMessage.error(res.message || '用户删除失败');
+          }
+        })
+        .catch((error) => {
+          console.error('用户删除失败:', error);
+          ElMessage.error('用户删除失败');
+        });
+    })
+    .catch(() => {
+      ElMessage.info('删除操作已取消');
+    });
 };
 
 onMounted(() => {

@@ -301,6 +301,12 @@ export default {
             data: params,
         })
     },
+    userpermissionconfig() {
+        return Request({
+            url: "/UserRole/permission/config",
+            method: 'get',
+        })
+    },
     userroleupdate(params) {
         return Request({
             url: "/UserRole/update",
@@ -355,6 +361,13 @@ export default {
     userrolecountupdate(params){
         return Request({
             url: "/UserRole/updateaicount",
+            method: 'put',
+            data: params,
+        })
+    },
+    userroleanalysiscountupdate(params){
+        return Request({
+            url: "/UserRole/updateanalysiscount",
             method: 'put',
             data: params,
         })

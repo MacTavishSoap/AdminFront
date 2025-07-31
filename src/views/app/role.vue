@@ -96,6 +96,16 @@
                   />
                 </template>
               </el-table-column>
+              <el-table-column prop="analysis_count" label="错题分析可用次数" width="180">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.analysis_count"
+                    :min="0"
+                    :max="9999"
+                    @change="(value) => handleAnalysisCountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
               <el-table-column prop="wrongnum" label="错题本题数" width="180">
                 <template #default="scope">
                   <el-input-number
@@ -276,6 +286,17 @@
                     :max="9999"
                     size="small"
                     @change="(value) => handleAICountChange(scope.row.id, value)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="analysis_count" label="错题分析次数" width="150">
+                <template #default="scope">
+                  <el-input-number
+                    v-model="scope.row.analysis_count"
+                    :min="0"
+                    :max="9999"
+                    size="small"
+                    @change="(value) => handleAnalysisCountChange(scope.row.id, value)"
                   />
                 </template>
               </el-table-column>
@@ -469,6 +490,15 @@
                 ></el-input-number>
               </el-form-item>
 
+              <el-form-item label="错题分析次数">
+                <el-input-number
+                  v-model="addForm.analysis_count"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入错题分析次数"
+                ></el-input-number>
+              </el-form-item>
+
               <el-form-item label="错题本题数">
                 <el-input-number
                   v-model="addForm.wrongnum"
@@ -597,6 +627,15 @@
                   :min="0"
                   :max="9999"
                   placeholder="请输入AI解析次数"
+                ></el-input-number>
+              </el-form-item>
+
+              <el-form-item label="错题分析次数">
+                <el-input-number
+                  v-model="addForm.analysis_count"
+                  :min="0"
+                  :max="9999"
+                  placeholder="请输入错题分析次数"
                 ></el-input-number>
               </el-form-item>
 
@@ -893,6 +932,7 @@ const addForm = ref({
   wrong: 1, // 错题本可用性，默认启用
   favourite: 1, // 收藏本可用性，默认启用
   count: 3, // AI解析次数，默认3次
+  analysis_count: 1, // 错题分析次数，默认1次
   wrongnum: 10, // 错题本题数，默认10题
   favouritenum: 10, // 收藏本题数，默认10题
 });
@@ -965,6 +1005,27 @@ const handleAICountChange = async (userId, newCount) => {
     }
   } catch (error) {
     console.error("AI次数设置失败:", error);
+    ElMessage.error("网络错误，请稍后重试");
+  }
+};
+
+const handleAnalysisCountChange = async (userId, newCount) => {
+  try {
+    // 构造符合后端要求的参数格式
+    const params = {
+      id: userId,
+      analysis_count: newCount,
+    };
+
+    const response = await proxy.$api.userroleanalysiscountupdate(params);
+
+    if (response.code == 200) {
+      ElMessage.success("错题分析次数设置成功");
+    } else {
+      ElMessage.error(response.message || "设置失败");
+    }
+  } catch (error) {
+    console.error("错题分析次数设置失败:", error);
     ElMessage.error("网络错误，请稍后重试");
   }
 };
